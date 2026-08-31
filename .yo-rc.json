@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "prodflow",
+    "environment": "spo",
+    "packageManager": "npm",
+    "skipFeatureDeployment": true,
+    "useGulp": false,
+    "componentType": "webpart",
+    "template": "react",
+    "componentName": "ProdFlow",
+    "componentDescription": "CIDEQ Production Management System",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.23.2",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "prodflow",
+    "libraryId": "c26a22b4-c252-4359-bb49-e53eface8262",
+    "solutionShortDescription": "prodflow description",
+    "isDomainIsolated": false
+  }
+}

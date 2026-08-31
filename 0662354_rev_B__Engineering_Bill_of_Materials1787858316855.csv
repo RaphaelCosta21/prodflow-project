@@ -1,0 +1,60 @@
+﻿="0662354 rev B: Engineering Bill of Materials"
+, , , , , , , , , , , , , , , , , , ,
+Level,Name,Title,Instance Title,Instance Description,Design Name,Revision,Not Last Revision,State,="F/N",Qty,Unit Of Measure,Design Collaboration,Change Required,Phase,Type,Collaborative Policy,Ref Des,Description,
+1,="0662354",="0662354",,,,B,,Release,,,,,"Enabled;Any Change",Production,Part,EC Part OII,,RISER PROTECTION SLEEVE,
+2,="0657413",="0657413",="0657413.1",,,C,,Release,1,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,FIXED CLAMP RISER PROTECTION SLEEVE ASSEMBLY,
+3,="0522404-M8-C3",="0522404-M8-C3",,,,A,,Release,14,6.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT HEX NYLOC M8 ISO 10511 A4-70",
+3,="0522452-M8-C3",="0522452-M8-C3",,,,A,,Release,22,6.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="WASHER HELICAL SPRING-LOCK M8 DIN 127B A4",
+3,="0516828-10-11-C3",="0516828-10-11-C3",,,,A,,Release,12,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT LOCK NYLON INSERT 0.625-11 UNC-2B ASME B18.16.6 ASTM F594 316 SST CW1",
+3,="0516877-18-C3",="0516877-18-C3",,,,A,,Release,17,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,WASHER PLAIN TYPE B REGULAR 1.125IN NOM SIZE 1.1875IN ID 2.75IN OD 0.16IN THK ASME B18.21.1 316 SST,
+3,="0516570-8-C3",="0516570-8-C3",,,,A,,Release,24,2.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="SCREW SOCKET HEAD CAP 0.25-20 UNC-3A X 0.5IN LG FULL THD ASME B18.3 316 SST",
+3,="0522451-M8-C3",="0522451-M8-C3",,,,A,,Release,13,6.0,EA Each,False,Disabled,Production,Part,EC Part OII,,WASHER PLAIN M8 ISO 7089 A4,
+3,="0522302-M10-80-C3",="0522302-M10-80-C3",,,,A,,Release,19,4.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="SCREW SOCKET HEAD CAP M10X80 PART THD ISO 4762 A4-70",
+3,="0340373",="0340373",,,,J,,Release,23,1.0,EA Each,False,="CA-0036002",Production,Part,EC Part OII,,"CABLE GROUND, 10 IN LG 316 SS, LUGS 1/4 IN BOLTED, WELDMENT",
+4,="0340373-1",="0340373-1",,,,D,,Release,1,1.0,EA Each,False,="CA-0036002",Production,Part,EC Part OII,,ROPE WIRE .125 DIA. 7X19 STRAND,
+5,="0535119",="0535119",,,,A,,Release,1,1.0,FT Feet,False,"Enabled;Any Change",Production,Part,EC Part OII,,ROPE WIRE 0.125 DIA 316SS 7 X 19 STRAND UNCOATED,
+4,="0340388",="0340388",,,,AD,,Release,2,2.0,EA Each,False,="CA-0035944",Production,Part,EC Part OII,,"LUG 1/4 IN BOLTED, CABLE GROUND",
+3,="0516881-8-C3",="0516881-8-C3",,,,A,,Release,21,4.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="WASHER HELICAL SPRING-LOCK 0.5IN NOM SIZE REGULAR ASME B18.21.1 316 SST",
+3,="0657396",="0657396",,,,B,,Release,5,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,ARM RISER PROTECTION SLEEVE DETAIL,
+3,="0657655",="0657655",,,,B,,Release,16,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,SPINDLE SPACER RISER PROTECTION SLEEVE DETAIL,
+3,="0516871-10-C3",="0516871-10-C3",,,,A,,Release,11,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,WASHER PLAIN TYPE A NARROW 0.625IN NOM SIZE 0.656IN ID 1.312IN OD 0.095IN THK ASME B18.21.1 316 SST,
+3,="0516498-88-C3",="0516498-88-C3",,,,A,,Release,9,4.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="SCREW HEX HEAD CAP 0.5-13 UNC-2A X 5.5IN LG PART THD ASME B18.2.1 316 SST",
+3,="0516828-18-7-C3",="0516828-18-7-C3",,,,A,,Release,15,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT LOCK NYLON INSERT 1.125-7 UNC-2B ASME B18.16.6 ASTM F594 316 SST CW2",
+3,="0657392",="0657392",,,,B,,Release,8,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,PIVOT PIN A RISER PROTECTION SLEEVE DETAIL,
+3,="0516871-8-C3",="0516871-8-C3",,,,A,,Release,10,8.0,EA Each,False,Disabled,Production,Part,EC Part OII,,WASHER PLAIN TYPE A NARROW 0.5IN NOM SIZE 0.531IN ID 1.0625IN OD 0.095IN THK ASME B18.21.1 316 SST,
+3,="0657397",="0657397",,,,C,,Release,1,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,ROV INTERFACE RISER PROTECTION SLEEVE WELDMENT,
+3,="0680124",="0680124",,,,A,,Release,20,6.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,SCREW HEX HEAD M8X35 FULL THD ISO 4017 CL 8.8 STL BICHROMATE CTG,
+3,="0659010",="0659010",,,,B,,Release,18,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,POLYPROPYLENE WEDGE FIXED CLAMP DETAIL,
+3,="0659038",="0659038",,,,B,,Release,7,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,RUBBER LAYER 8 X 241 X 962 MM FIXED CLAMP DETAIL,
+3,="0659012",="0659012",="0659012.1",,,B,,Release,6,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,"FIXED CLAMP BUOYANCY MODULE
+FIXED CLAMP
+DETAIL",
+3,="0657647",="0657647",="0657647.1",,,A,,Release,2,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,"FLANGE
+RISER PROTECTION SLEEVE
+DETAIL",
+3,="0651688",="0651688",="0651688.1",,,B,,Release,3,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,SPINDLE RISER PROTECTION SLEEVE WELDMENT,
+3,="0651689",="0651689",="0651689.1",,,A,,Release,4,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,PUSHING PLATE RISER PROTECTION SLEEVE DETAIL,
+3,="0516828-8-13-C3",="0516828-8-13-C3",="0516828-8-13-C3.1",,,A,,Release,25,4.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT LOCK NYLON INSERT 0.5-13 UNC-2B ASME B18.16.6 ASTM F594 316 SST CW1",
+2,="0657415",="0657415",="0657415.1",,,B,,Release,2,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,MOVABLE CLAMP RISER PROTECTION SLEEVE DETAIL,
+3,="0657879",="0657879",="0657879.1",,,C,,Release,2,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,"METALLIC BODY
+MOVABLE CLAMP
+WELDMENT",
+3,="0658072",="0658072",="0658072.1",,,B,,Release,1,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,MOVABLE CLAMP BUOYANCY MODULE MOVABLE CLAMP DETAIL,
+3,="0658732",="0658732",="0658732.1",,,B,,Release,3,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,POLYPROPYLENE WEDGE MOVABLE CLAMP DETAIL,
+3,="0658874",="0658874",="0658874.1",,,B,,Release,4,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,RUBBER LAYER 8 X 272 X 959 MM,
+3,="0522404-M10-C3",="0522404-M10-C3",="0522404-M10-C3.1",,,A,,Release,5,4.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT HEX NYLOC M10 ISO 10511 A4-70",
+3,="0522333-M10-65-C3",="0522333-M10-65-C3",="0522333-M10-65-C3.1",,,A,,Release,6,4.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="SCREW FLAT HEAD COUNTERSUNK M10X65 FULL THD ISO 10642 A4-70",
+3,="0522302-M10-55-C3",="0522302-M10-55-C3",="0522302-M10-55-C3.1",,,A,,Release,7,3.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="SCREW SOCKET HEAD CAP M10X55 PART THD ISO 4762 A4-70",
+2,="0657395",="0657395",="0657395.1",,,A,="Latest unreleased revision exists : B",Release,3,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,PIVOT PIN C RISER PROTECTION SLEEVE DETAIL,
+2,="0516813-12-10-C3",="0516813-12-10-C3",="0516813-12-10-C3.1",,,A,,Release,4,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT LOCK NYLON INSERT 0.75-10 UNC-2B ASME B18.16.6 316 SST",
+2,="0516871-12-C3",="0516871-12-C3",="0516871-12-C3.1",,,A,,Release,5,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,WASHER PLAIN TYPE A NARROW 0.75IN NOM SIZE 0.812IN ID 1.469IN OD 0.134IN THK ASME B18.21.1 316 SST,
+2,="0516828-10-11-C3",="0516828-10-11-C3",="0516828-10-11-C3.1",,,A,,Release,6,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,="NUT LOCK NYLON INSERT 0.625-11 UNC-2B ASME B18.16.6 ASTM F594 316 SST CW1",
+2,="0516871-10-C3",="0516871-10-C3",="0516871-10-C3.1",,,A,,Release,7,1.0,EA Each,False,Disabled,Production,Part,EC Part OII,,WASHER PLAIN TYPE A NARROW 0.625IN NOM SIZE 0.656IN ID 1.312IN OD 0.095IN THK ASME B18.21.1 316 SST,
+2,="0657394",="0657394",="0657394.1",,,A,="Latest unreleased revision exists : B",Release,8,1.0,EA Each,False,"Enabled;Any Change",Production,Part,EC Part OII,,PIVOT PIN B RISER PROTECTION SLEEVE DETAIL,
+
+
+
+
+
+
+

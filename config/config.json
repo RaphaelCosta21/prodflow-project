@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "prod-flow-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/prodFlow/ProdFlowWebPart.js",
+          "manifest": "./src/webparts/prodFlow/ProdFlowWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "ProdFlowWebPartStrings": "lib/webparts/prodFlow/loc/{locale}.js"
+  }
+}

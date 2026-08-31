@@ -1,0 +1,64 @@
+// ProdFlow design tokens — LIGHT theme (default). Oceaneering identity: navy/blue + neutrals.
+// Applied via the .prodflowLight root class. Never hardcode these hex values in components —
+// always reference the CSS custom property (var(--...)). Keep in sync with dark.module.scss.
+// NOTE: --primary-accent is a PLACEHOLDER Oceaneering blue pending the official brand hex.
+
+.prodflowLight {
+  /* Surfaces & Chrome */
+  --main-bg: #f5f8fc;
+  --card-bg: #ffffff;
+  --card-bg-elevated: #eef4fb;
+  --input-bg: #eef4fb;
+  --hover-bg: rgba(10, 41, 89, 0.04);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(10, 41, 89, 0.08);
+
+  /* Sidebar & Header (stay navy in both themes) */
+  --sidebar-bg: #0a1929;
+  --sidebar-text: #e8eef6;
+  --sidebar-text-muted: #94a8c0;
+  --sidebar-active: #2f81f7;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --header-bg: #ffffff;
+  --header-text: #0f2338;
+
+  /* Brand & Accents (Oceaneering blue — PLACEHOLDER, confirm brand hex) */
+  --primary-accent: #0a58ca;
+  --primary-accent-hover: #0847a5;
+  --secondary-accent: #0284c7;
+  --tertiary-accent: #475569;
+
+  /* Semantic (status) */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #0ea5e9;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --info-bg: rgba(14, 165, 233, 0.12);
+
+  /* Text & Borders */
+  --text-primary: #0f2338;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: #dbe6f2;
+  --border-subtle: #eef4fb;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #0a58ca 0%, #0284c7 100%);
+  --gradient-accent: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+  --gradient-header: linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%);
+
+  /* Shadows */
+  --shadow-card:
+    0 1px 3px rgba(10, 41, 89, 0.08), 0 1px 2px rgba(10, 41, 89, 0.06);
+  --shadow-card-hover:
+    0 8px 24px rgba(10, 41, 89, 0.12), 0 2px 6px rgba(10, 41, 89, 0.08);
+  --shadow-glow: 0 0 0 3px rgba(10, 88, 202, 0.25);
+
+  /* Overlays & Scrollbars */
+  --overlay-bg: rgba(10, 25, 41, 0.45);
+  --scrollbar-thumb: rgba(10, 41, 89, 0.25);
+  --scrollbar-track: transparent;
+}

@@ -1,0 +1,38 @@
+// Shared keyframes — prefer these over ad-hoc @keyframes in component styles.
+
+.fadeIn {
+  animation: fadeIn 250ms ease both;
+}
+
+.fadeInUp {
+  animation: fadeInUp 300ms ease both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
