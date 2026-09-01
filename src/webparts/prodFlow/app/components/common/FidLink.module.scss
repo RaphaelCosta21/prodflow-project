@@ -1,0 +1,13 @@
+.link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--primary-accent);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

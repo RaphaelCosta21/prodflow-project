@@ -21,6 +21,23 @@ function escapeOData(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+// SharePoint returns rich-text multiline fields HTML-encoded (e.g. "{" -> "&#123;"), which breaks
+// JSON.parse. Decode the common/numeric entities before parsing (no-op for plain-text fields).
+function decodeSpHtml(value: string): string {
+  return value
+    .replace(/&#(\d+);/g, (_m, n: string) =>
+      String.fromCharCode(parseInt(n, 10)),
+    )
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, n: string) =>
+      String.fromCharCode(parseInt(n, 16)),
+    )
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
 export class RequestService {
   private static get list(): IList {
     return SPService.sp.web.lists.getByTitle(SP_CONFIG.lists.requests);
@@ -54,6 +71,28 @@ export class RequestService {
     return found?.data;
   }
 
+  // Full FID documents (parses every JSON blob) — for dashboards/boards that need financials,
+  // dates and sub-items. Heavier than getAllHeaders(); prefer headers for plain list views.
+  public static async getAllFull(): Promise<IFabricationRequest[]> {
+    const f = SP_CONFIG.fields;
+    const items = await RequestService.list.items
+      .select(f.jsonData)
+      .top(5000)();
+    const parsed: IFabricationRequest[] = [];
+    for (const it of items as Record<string, unknown>[]) {
+      try {
+        parsed.push(
+          parseFabricationRequest(
+            JSON.parse(decodeSpHtml(String(it[f.jsonData] ?? "{}"))),
+          ),
+        );
+      } catch {
+        // Skip malformed rows so one bad item cannot break the whole dashboard.
+      }
+    }
+    return parsed;
+  }
+
   private static async findItem(
     fid: string,
   ): Promise<
@@ -67,7 +106,7 @@ export class RequestService {
     if (!items.length) return undefined;
     const it = items[0] as Record<string, unknown>;
     const data = parseFabricationRequest(
-      JSON.parse(String(it[f.jsonData] ?? "{}")),
+      JSON.parse(decodeSpHtml(String(it[f.jsonData] ?? "{}"))),
     );
     return { id: Number(it.Id), etag: RequestService.readEtag(it), data };
   }
@@ -88,7 +127,7 @@ export class RequestService {
         await RequestService.list.items.getById(found.id).update(
           {
             [f.status]: found.data.status,
-            [f.phase]: found.data.phase,
+            [f.phase]: String(found.data.phase),
             [f.jsonData]: JSON.stringify(found.data),
           },
           found.etag,
@@ -112,7 +151,7 @@ export class RequestService {
       Title: fid,
       [f.fid]: fid,
       [f.os]: full.osNumber,
-      [f.phase]: full.phase,
+      [f.phase]: String(full.phase),
       [f.status]: full.status,
       [f.year]: new Date().getFullYear(),
       [f.jsonData]: JSON.stringify(full),

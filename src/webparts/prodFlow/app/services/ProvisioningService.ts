@@ -109,8 +109,16 @@ export class ProvisioningService {
   private static async ensureNote(list: IList, name: string): Promise<void> {
     try {
       await list.fields.getByInternalNameOrTitle(name)();
+      // Plain text (rich text HTML-encodes the JSON blob). Best-effort flip for existing fields.
+      try {
+        await list.fields
+          .getByInternalNameOrTitle(name)
+          .update({ RichText: false }, "SP.FieldMultiLineText");
+      } catch {
+        /* legacy rich-text values are handled by decode-on-read in RequestService */
+      }
     } catch {
-      await list.fields.addMultilineText(name);
+      await list.fields.addMultilineText(name, { RichText: false });
     }
   }
 }

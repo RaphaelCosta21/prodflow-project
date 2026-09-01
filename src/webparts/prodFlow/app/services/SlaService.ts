@@ -54,11 +54,15 @@ export class SlaService {
     return isOverdue(prazoEnvio, dataEnvio);
   }
 
-  // Rollup financeiro bottom-up a partir das folhas (§13).
-  public static computeFinancials(subItems: ISubItem[]): IFinancials {
+  // Rollup financeiro bottom-up a partir das folhas (§13). When orcamentoOverride is provided
+  // (the budget mask total), it becomes orcamentoOceaneering while custoTotal stays the sub-item sum.
+  public static computeFinancials(
+    subItems: ISubItem[],
+    orcamentoOverride?: number,
+  ): IFinancials {
     const leaves = SlaService.leaves(subItems);
     let custoTotal = 0;
-    let orcamentoOceaneering = 0;
+    let orcamentoLeaves = 0;
     for (const leaf of leaves) {
       const custo =
         leaf.custoTotal ??
@@ -66,8 +70,10 @@ export class SlaService {
           (leaf.partesEPecas || 0) +
           (leaf.servicos || 0);
       custoTotal += custo;
-      orcamentoOceaneering += leaf.orcamentoOceaneering || 0;
+      orcamentoLeaves += leaf.orcamentoOceaneering || 0;
     }
+    const orcamentoOceaneering =
+      orcamentoOverride !== undefined ? orcamentoOverride : orcamentoLeaves;
     return {
       custoTotal,
       orcamentoOceaneering,

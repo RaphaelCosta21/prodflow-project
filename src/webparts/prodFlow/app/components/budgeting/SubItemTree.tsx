@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Dropdown, Option } from "@fluentui/react-components";
+import { Dropdown, Option, Button } from "@fluentui/react-components";
 import {
   ChevronDown20Regular,
   ChevronRight20Regular,
+  Open16Regular,
 } from "@fluentui/react-icons";
 import { ISubItem } from "../../models";
 import { buildSubItemTree, ISubItemNode } from "../../utils/subItemTree";
@@ -12,17 +13,25 @@ import {
   optionByKey,
 } from "../../config/strategyOptions";
 import { useUpdateSubItem } from "../../api/fids";
+import { formatCurrencyBRL } from "../../utils/formatters";
 import StatusBadge from "../common/StatusBadge";
 import SubItemPathway from "./SubItemPathway";
+import SubItemDetailPanel from "./SubItemDetailPanel";
 import styles from "./SubItemTree.module.scss";
 
 interface ISubItemRowProps {
   node: ISubItemNode;
   depth: number;
   fid: string;
+  onOpen: (subItem: ISubItem) => void;
 }
 
-const SubItemRow: React.FC<ISubItemRowProps> = ({ node, depth, fid }) => {
+const SubItemRow: React.FC<ISubItemRowProps> = ({
+  node,
+  depth,
+  fid,
+  onOpen,
+}) => {
   const [expanded, setExpanded] = React.useState(true);
   const update = useUpdateSubItem(fid);
   const hasChildren = node.children.length > 0;
@@ -69,6 +78,9 @@ const SubItemRow: React.FC<ISubItemRowProps> = ({ node, depth, fid }) => {
           {node.qtd}
           {node.unit ? ` ${node.unit}` : ""}
         </span>
+        <span className={styles.custo}>
+          {node.custoTotal ? formatCurrencyBRL(node.custoTotal) : "—"}
+        </span>
         <div className={styles.strategy}>
           <Dropdown
             size="small"
@@ -89,6 +101,13 @@ const SubItemRow: React.FC<ISubItemRowProps> = ({ node, depth, fid }) => {
         <div className={styles.status}>
           <StatusBadge kind="subitem" status={node.status} />
         </div>
+        <Button
+          size="small"
+          appearance="subtle"
+          icon={<Open16Regular />}
+          aria-label="Abrir detalhes"
+          onClick={() => onOpen(node)}
+        />
       </div>
       {!hasChildren && strategyKey && (
         <div
@@ -101,7 +120,13 @@ const SubItemRow: React.FC<ISubItemRowProps> = ({ node, depth, fid }) => {
       {hasChildren &&
         expanded &&
         node.children.map((child) => (
-          <SubItemRow key={child.id} node={child} depth={depth + 1} fid={fid} />
+          <SubItemRow
+            key={child.id}
+            node={child}
+            depth={depth + 1}
+            fid={fid}
+            onOpen={onOpen}
+          />
         ))}
     </React.Fragment>
   );
@@ -114,17 +139,34 @@ export interface ISubItemTreeProps {
 
 export const SubItemTree: React.FC<ISubItemTreeProps> = ({ subItems, fid }) => {
   const tree = React.useMemo(() => buildSubItemTree(subItems), [subItems]);
+  const [selectedId, setSelectedId] = React.useState<string | undefined>();
+  const selected = subItems.filter((s) => s.id === selectedId)[0];
+
   return (
     <div className={styles.tree}>
       <div className={styles.headerRow}>
         <span className={styles.hMain}>Sub-item (nível · PN · descrição)</span>
         <span className={styles.hQtd}>Qtd</span>
+        <span className={styles.hCusto}>Custo</span>
         <span className={styles.hStrategy}>Estratégia (make/buy)</span>
         <span className={styles.hStatus}>Status</span>
+        <span />
       </div>
       {tree.map((node) => (
-        <SubItemRow key={node.id} node={node} depth={0} fid={fid} />
+        <SubItemRow
+          key={node.id}
+          node={node}
+          depth={0}
+          fid={fid}
+          onOpen={(s) => setSelectedId(s.id)}
+        />
       ))}
+      <SubItemDetailPanel
+        fid={fid}
+        subItem={selected}
+        open={!!selected}
+        onClose={() => setSelectedId(undefined)}
+      />
     </div>
   );
 };

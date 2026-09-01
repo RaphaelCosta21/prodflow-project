@@ -5,6 +5,27 @@ import Header from "./components/layout/Header";
 import DashboardPage from "./pages/DashboardPage";
 import RequestsPage from "./pages/RequestsPage";
 import FidDetailPage from "./pages/FidDetailPage";
+import ConfigurationPage from "./pages/ConfigurationPage";
+import BudgetingBoardPage from "./pages/BudgetingBoardPage";
+import ProductionBoardPage from "./pages/ProductionBoardPage";
+import PlannerPage from "./pages/PlannerPage";
+import TimelinePage from "./pages/TimelinePage";
+import SmartLabelsPage from "./pages/SmartLabelsPage";
+import ApprovalsPage from "./pages/ApprovalsPage";
+import BudgetReportsPage from "./pages/BudgetReportsPage";
+import MembersPage from "./pages/MembersPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import MobileScanPage from "./pages/MobileScanPage";
+import {
+  SubItemsPage,
+  QuotationsPage,
+  ProcurementPage,
+  WorkOrdersPage,
+  WorkshopPage,
+  QualityPage,
+  WarehousePage,
+  ServiceExcellencePage,
+} from "./pages/TeamViewPages";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import { ROUTES } from "./config/routes";
 import styles from "./AppLayout.module.scss";
@@ -20,124 +41,43 @@ export const AppLayout: React.FC = () => (
             <Route path={ROUTES.dashboard} element={<DashboardPage />} />
             <Route
               path={ROUTES.notifications}
-              element={
-                <PlaceholderPage title="Notifications" phase="Overview" />
-              }
+              element={<NotificationsPage />}
             />
             <Route
               path={ROUTES.budgetingBoard}
-              element={
-                <PlaceholderPage title="Budgeting Board" phase="Fase 1" />
-              }
+              element={<BudgetingBoardPage />}
             />
             <Route path={ROUTES.requests} element={<RequestsPage />} />
-            <Route
-              path={ROUTES.subItems}
-              element={
-                <PlaceholderPage
-                  title="Sub-items & Delineamento"
-                  phase="Fase 1"
-                />
-              }
-            />
-            <Route
-              path={ROUTES.quotations}
-              element={
-                <PlaceholderPage title="Cotações (SCM)" phase="Fase 1" />
-              }
-            />
+            <Route path={ROUTES.subItems} element={<SubItemsPage />} />
+            <Route path={ROUTES.quotations} element={<QuotationsPage />} />
             <Route
               path={ROUTES.budgetReports}
-              element={
-                <PlaceholderPage
-                  title="Relatórios de Orçamento"
-                  phase="Fase 1"
-                />
-              }
+              element={<BudgetReportsPage />}
             />
-            <Route
-              path={ROUTES.approvals}
-              element={
-                <PlaceholderPage
-                  title="Aprovações (Petrobras)"
-                  phase="Fase 1"
-                />
-              }
-            />
+            <Route path={ROUTES.approvals} element={<ApprovalsPage />} />
             <Route path={ROUTES.fidDetail} element={<FidDetailPage />} />
             <Route
               path={ROUTES.productionBoard}
-              element={
-                <PlaceholderPage title="Production Board" phase="Fase 2" />
-              }
+              element={<ProductionBoardPage />}
             />
-            <Route
-              path={ROUTES.workOrders}
-              element={<PlaceholderPage title="Work Orders" phase="Fase 2" />}
-            />
-            <Route
-              path={ROUTES.procurement}
-              element={
-                <PlaceholderPage title="Procurement (RC/PO)" phase="Fase 2" />
-              }
-            />
-            <Route
-              path={ROUTES.workshop}
-              element={
-                <PlaceholderPage title="Workshop / Fabricação" phase="Fase 2" />
-              }
-            />
-            <Route
-              path={ROUTES.quality}
-              element={
-                <PlaceholderPage title="Qualidade & Databook" phase="Fase 2" />
-              }
-            />
-            <Route
-              path={ROUTES.warehouse}
-              element={<PlaceholderPage title="Almoxarifado" phase="Fase 2" />}
-            />
+            <Route path={ROUTES.workOrders} element={<WorkOrdersPage />} />
+            <Route path={ROUTES.procurement} element={<ProcurementPage />} />
+            <Route path={ROUTES.workshop} element={<WorkshopPage />} />
+            <Route path={ROUTES.quality} element={<QualityPage />} />
+            <Route path={ROUTES.warehouse} element={<WarehousePage />} />
             <Route
               path={ROUTES.serviceExcellence}
-              element={
-                <PlaceholderPage title="Service Excellence" phase="Fase 2" />
-              }
+              element={<ServiceExcellencePage />}
             />
-            <Route
-              path={ROUTES.planner}
-              element={
-                <PlaceholderPage
-                  title="Planner (carga × capacidade)"
-                  phase="Planning"
-                />
-              }
-            />
-            <Route
-              path={ROUTES.timeline}
-              element={
-                <PlaceholderPage title="Timeline (Gantt)" phase="Planning" />
-              }
-            />
-            <Route
-              path={ROUTES.smartLabels}
-              element={
-                <PlaceholderPage title="Smart Labels (QR)" phase="Tools" />
-              }
-            />
-            <Route
-              path={ROUTES.mobileScan}
-              element={<PlaceholderPage title="Mobile Scan" phase="Tools" />}
-            />
+            <Route path={ROUTES.planner} element={<PlannerPage />} />
+            <Route path={ROUTES.timeline} element={<TimelinePage />} />
+            <Route path={ROUTES.smartLabels} element={<SmartLabelsPage />} />
+            <Route path={ROUTES.mobileScan} element={<MobileScanPage />} />
             <Route
               path={ROUTES.configuration}
-              element={<PlaceholderPage title="Configuration" phase="Admin" />}
+              element={<ConfigurationPage />}
             />
-            <Route
-              path={ROUTES.members}
-              element={
-                <PlaceholderPage title="Members Management" phase="Admin" />
-              }
-            />
+            <Route path={ROUTES.members} element={<MembersPage />} />
             <Route
               path="*"
               element={<PlaceholderPage title="Página não encontrada" />}

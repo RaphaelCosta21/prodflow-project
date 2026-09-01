@@ -1030,34 +1030,88 @@ _Fim do documento. Use como ponto de partida para iniciar o ProdFlow do zero em 
 
 ### 25.5 Onde parou
 
-- **Parou ao concluir a F2b** (página do FID + import da BOM + árvore de sub-itens com make/buy + pathway), com **build limpo** (`npx heft build --clean`, 20 SCSS, 0 erros/warnings).
-- **Fluxo de orçamentação já funciona ponta a ponta no código:** criar FID (da OS) → abrir a página do FID → importar a BOM (CSV do PLM) → definir make/buy por sub-item → ver o pathway por sub-item. Falta a **máscara de orçamento** e o **fecho da Fase 1**.
+- **Parou ao concluir a F2b.** _(Seção histórica — o estado atual está na §26.)_
 
-### 25.6 Próximos passos
+### 25.6 Próximos passos (histórico da sessão 2026-08-29)
 
-1. **F2c — fechar a Fase 1:**
-   - **Máscara de orçamento** (aba _Orçamento_ do `FidDetailPage`): Tabelas 1/2/3, **apenas `QTD`/`HH` editáveis**, `Peso` fixo (`CONTRACT_WEIGHTS`), `Peso Total`/`Valor` automáticos via `BudgetService` → **validar o total R$ 100.028,19** (depende de transcrever os pesos do contrato — item aberto #1).
-   - **Máquina de status** (`Draft→Budgeting→BudgetReview→Submitted→Approved/Rejected`) + **trilha de aprovação** (eventos no `history`).
-   - **Export do Excel** do orçamento (dep `exceljs` — ainda não instalada).
-2. **Provisionar as listas** no site: rodar `ProvisioningService.ensureAll()` contra o SharePoint (falta um **botão de gatilho** na página Admin/Configuration) + **deploy/serve** para validar em runtime (o app compila, mas o dado real depende das listas existirem).
-3. **F3–F7** conforme o roadmap §21 (Produção/Qualidade/Service Excellence · QR/Smart Labels · Dashboards Nivo/Board/Planner/Gantt · Config/Members/RBAC/Notificações · graphify/testes/deploy).
+1. **F2c — fechar a Fase 1** (máscara de orçamento, máquina de status, export do Excel).
+2. **Provisionar as listas** no site + deploy/serve para validar em runtime.
+3. **F3–F7** conforme o roadmap §21.
 
 ### 25.7 Itens abertos que impactam a continuação
 
-- **#1 — Pesos do contrato:** placeholders (0) em `config/contractWeights`. **Necessário transcrever** para a máscara bater **R$ 100.028,19**.
-- **#6 — Hex oficial do azul Oceaneering:** `--primary-accent` e o BrandVariants estão com **placeholder**; ajustar quando as brand guidelines forem confirmadas (muda só os tokens).
-- **Verificação runtime:** depende de **deploy/serve** contra o site com as listas provisionadas.
+- ~~**#1 — Pesos do contrato**~~ **RESOLVIDO** (§26): transcritos com precisão total do template `.xlsx`.
+- **#6 — Hex oficial do azul Oceaneering:** `--primary-accent` e o BrandVariants seguem com **placeholder**; ajustar quando as brand guidelines forem confirmadas (muda só os tokens).
+- **Verificação runtime:** ainda pendente — depende de **deploy/serve** contra o site com as listas provisionadas.
 
 ### 25.8 Gotchas de build aprendidos (já contornados)
 
 - **O TS server do editor esconde erros de build** — sempre validar com `npx heft build --clean`.
 - **`lib` do rig < ES2017:** `String.padStart`/`padEnd` falham no build → usar helper `pad2`.
-- **Tipagem de SCSS module é estrita:** `styles.X` exige uma classe `.X` no `.module.scss` (senão TS2339 no build; o editor não avisa).
-- **TanStack Query v4:** a `queryFn` não pode retornar `undefined` (`useFid` lança em "não encontrado"); o rig proíbe o **operador `void`** e o uso de **`null`** (usar `undefined`).
-- **PnPjs v3 concorrência:** `items.getById(id).update(props, eTag?)`; eTag lido de `item["odata.etag"]` (fallback `"*"`).
+- **Tipagem de SCSS module é estrita:** `styles.X` exige uma classe `.X` no `.module.scss` (senão TS2339 no build; o editor não avisa). E `styles[chaveDinâmica]` dá **TS7053** → usar um mapa explícito.
+- **TanStack Query v4:** a `queryFn` não pode retornar `undefined` (`useFid` lança em "não encontrado"); o rig proíbe o **operador `void`** e o uso de **`null`** (usar `undefined`). Em `onSuccess`, **retornar** `Promise.all([...invalidateQueries])` (senão `no-floating-promises`).
+- **PnPjs v3 concorrência:** `items.getById(id).update(props, eTag?)`; eTag lido de `item["odata.etag"]` (fallback `"*"`). `files.select(...)()` já vem tipado como `IFileInfo[]` — não fazer cast.
+- **`useUIStore.addToast(message, intent?)`** — assinatura posicional, não objeto.
+- **ESLint exige tipo de retorno explícito** em funções/arrow functions e getters estáticos.
 
 ### 25.9 Como continuar (retomada rápida)
 
 1. Garantir **Node 22** ativo (`node -v` → v22.x; perfil do PowerShell + `.vscode/settings.json` já configuram; se preciso, prepend inline `$env:PATH="C:\Users\rcosta1\nvm\v22.23.2;"+$env:PATH`).
-2. `npx heft build --clean` para confirmar o estado (deve passar limpo).
-3. Retomar em **F2c** (máscara de orçamento) — aba _Orçamento_ do `FidDetailPage`, usando `BudgetService` + `CONTRACT_WEIGHTS`.
+2. `npx heft build --clean` (build) e `npx heft test --clean` (testes) para confirmar o estado.
+3. Ver **§26** para o estado atual e o que falta.
+
+---
+
+## 26. Registro de Implementação — Sessão 2026-09-01 (F2c → F7)
+
+> **Estado:** build limpo (`npx heft build --clean`, 0 erros / 0 warnings) e **19 testes passando** (`npx heft test --clean`).
+> **Nenhuma rota é mais PlaceholderPage** — as 22 rotas têm páginas reais.
+
+### 26.1 Fase 1 fechada (F2c/F2d)
+
+- **Máscara de orçamento** — `BudgetLinesTable` (catálogos **fixos**: só `QTD`/`HH` editáveis), `BudgetCotsTable` (Tabela 3 livre) e `BudgetMask` (cabeçalho + T1 + duas T2 + T3 + bloco Valor Final ao vivo).
+- **Pesos do contrato transcritos** do template oficial `Relatório de Orçamento de Fabricação - OS.xlsx` com precisão total (item aberto #1 **resolvido**). Descoberta importante: o preço unitário é **por tabela** — **Tabela 2 = 19.093** e **Tabela 1 = 46.071** (fórmulas embutidas no template).
+  - _Reconciliação:_ com os pesos do template, o exemplo dá **R$ 99.935,24** (não R$ 100.028,19). A diferença é só a linha **Caldeiraria/Média** (template `0,016227` × histórico `0,016448`). **O template é a fonte da verdade** e a UI bate exatamente com o Excel exportado.
+- **Export do Excel** (`utils/exportBudgetExcel` + `exceljs`) — preenche **apenas** cabeçalho e QTD/HH no template embutido e liga `fullCalcOnLoad`; o layout oficial fica intacto.
+- **Máquina de status + aprovação** — `utils/statusHelpers` (`canTransition`), `ApprovalTab` (stepper, Enviar/Aprovar/Reprovar/Revisar/Liberar/Paralisar/Cancelar) e `HistoryTimeline`.
+- **Custeio por sub-item** — `SubItemDetailPanel` (delineamento com **controle de revisão**, cotação e custos) + rollup automático para `financials`.
+
+### 26.2 Fase 2, dashboards e ferramentas (F3–F5)
+
+- **Produção/Qualidade/Anexos** — `ProductionTab` (RC/SR, PO/WO, datas, checklist com progresso, SN), `QualityTab` (certificados, inspeção, DOC/RSO), `AttachmentsTab` (upload/remoção + timeline).
+- **Dashboard real** com os **5 KPIs do §14** + donut de mix make/buy, funil do pipeline, barras custo×receita e alertas de atraso.
+- **Boards Kanban** (`@dnd-kit`) para Fase 1 e Fase 2, com drag **validado por `canTransition`**.
+- **Planner** (heatmap de carga semanal) e **Timeline** (Gantt **nativo**).
+- **Smart Labels** (QR por sub-item, com CSS de impressão) e **Mobile Scan** (`BarcodeDetector` + fallback manual).
+
+### 26.3 Telas por time, Members, Config e Notificações (F6)
+
+- **Motor `CrossFidView`** — um componente genérico + config declarativa gera as **8 telas por time** (Sub-itens, Cotações, Procurement, Work Orders, Workshop, Qualidade, Almoxarifado, Service Excellence), com filtro, busca e **edição inline** (commit no `blur`).
+- **Members Management** — layout portado do SmartBid, com **people picker via Graph** (`msGraphClientFactory`, **sem dependência nova**). Modelo: `team` + `additionalTeams[]` + `accessLevel` (`member/lead/manager/admin`), persistido como **uma linha JSON** em `prodflow-config`.
+- **Configuration** — sidebar com 8 grupos: Contrato & Pesos (read-only), SLA × Complexidade, Feriados, Status & Fases, Times, **matriz de Níveis de Acesso**, **matriz de Notificações** e Sistema (tema, super admins, provisionamento).
+- **Notificações** — `NotificationService` alimenta a fila `prodflow-notifications` (consumida pelo Power Automate), com destinatários resolvidos pela matriz de config; `NotificationsPage` mostra a fila.
+- **RBAC** — `useAccessLevel` resolve o usuário contra a lista de membros. **Bootstrap:** enquanto não houver nenhum membro cadastrado, todos são admin (senão ninguém conseguiria cadastrar o primeiro).
+
+### 26.4 Qualidade (F7)
+
+- **Testes (Jest 30 via `heft test`)** — 19 passando: `businessDays` (7), `statusHelpers` (5) e `BudgetService` (7, incluindo o caso de referência do template).
+- **App Insights** — `TelemetryService` **opt-in**: só inicia se um admin gravar a connection string em `prodflow-config`. **Nenhuma chave no código.**
+- **ErrorBoundary** — evita que um erro de render apague o web part inteiro e reporta para a telemetria.
+- **i18n** — base pronta (`config/strings` + `hooks/useTranslation`, pt-BR/en); a migração das strings de tela é incremental.
+- **Acessibilidade** — ícones Fluent no lugar de emojis, `aria-label` nos botões de ícone, `role="dialog"`/`aria-modal` nos painéis e `aria-live` nos toasts.
+
+### 26.5 Decisões técnicas de compatibilidade (importantes)
+
+- **Nivo fixado em 0.87.0.** A 0.99 publica ESM `.mjs` que importa `react/jsx-runtime` sem extensão → o webpack 5 do SPFx falha (`fullySpecified`), porque o React 17 não expõe esse subpath. **Não subir a versão** sem ajustar o webpack.
+- **`gantt-task-react` descartada** — as versões pulam de React 16 para 18, nenhuma suporta o React 17 do SPFx. O **Gantt foi implementado nativamente** com os design tokens.
+- **`TeamKey` renomeado para inglês** (`projects`, `planning`, `industrialEngineering`, `scm`, `purchasing`, `workshop`, `quality`, `warehouse`, `serviceExcellence`, `machining`), já que o time também é o papel do membro. O campo persistido `orcamentoUsinando` **não** foi renomeado (quebraria o JSON gravado).
+- **Correção de segurança no people picker:** a busca do SmartBid interpolava o termo cru no filtro OData (**injeção**); no ProdFlow o `'` é escapado (`''`) e o termo é limitado.
+
+### 26.6 O que falta
+
+1. **Validação em runtime** — nada foi exercitado contra o SharePoint real. Rodar `npm run start`, **provisionar as listas** em _Admin › Configuration_ e percorrer o fluxo (criar FID → BOM → orçamento → Excel → aprovação).
+   - Conferir no Excel exportado as células de cabeçalho **OS (`AO2`)** e **N° do orçamento (`AG4`)** — se algum valor cair fora do lugar, é ajuste de uma linha em `config/budgetTemplateMap`.
+2. **Hex oficial do azul Oceaneering** (item aberto #6).
+3. **Deploy** — `npm run build` (produção) e publicar o `.sppkg` no app catalog.
+4. **graphify** — rodar `/graphify` para gerar o grafo do estado atual.
+5. **i18n incremental** e ampliação da cobertura de testes.

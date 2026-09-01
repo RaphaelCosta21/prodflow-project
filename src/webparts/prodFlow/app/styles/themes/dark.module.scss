@@ -60,4 +60,9 @@
   --overlay-bg: rgba(3, 10, 18, 0.6);
   --scrollbar-thumb: rgba(255, 255, 255, 0.16);
   --scrollbar-track: transparent;
+
+  /* Layering */
+  --z-sticky: 100;
+  --z-panel: 1000;
+  --z-toast: 2000;
 }

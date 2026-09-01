@@ -106,7 +106,11 @@ export const CreateFidDialog: React.FC<ICreateFidDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(_, data) => onOpenChange(data.open)}>
+    <Dialog
+      open={open}
+      modalType="alert"
+      onOpenChange={(_, data) => onOpenChange(data.open)}
+    >
       <DialogSurface className={styles.surface}>
         <DialogBody>
           <DialogTitle>Novo FID a partir da OS</DialogTitle>

@@ -4,6 +4,7 @@ export type BudgetCriterio = "HH" | "UN" | "M2" | "KG";
 
 // pesoTotal = qtd * peso (auto). Peso is fixed from CONTRACT_WEIGHTS; only qtd/HH is user-editable.
 export interface IBudgetLine {
+  key?: string; // stable catalog id (CONTRACT_WEIGHTS) — joins the line to its template cell
   categoria?: string;
   descricao: string;
   criterio?: BudgetCriterio;

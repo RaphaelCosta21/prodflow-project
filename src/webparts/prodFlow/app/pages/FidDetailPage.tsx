@@ -15,6 +15,11 @@ import StatusBadge from "../components/common/StatusBadge";
 import PhaseBadge from "../components/common/PhaseBadge";
 import BomImport from "../components/budgeting/BomImport";
 import SubItemTree from "../components/budgeting/SubItemTree";
+import BudgetMask from "../components/budgeting/BudgetMask";
+import ApprovalTab from "../components/budgeting/ApprovalTab";
+import ProductionTab from "../components/production/ProductionTab";
+import QualityTab from "../components/quality/QualityTab";
+import AttachmentsTab from "../components/common/AttachmentsTab";
 import { formatCurrencyBRL, formatDate } from "../utils/formatters";
 import styles from "./FidDetailPage.module.scss";
 
@@ -90,12 +95,6 @@ const OverviewTab: React.FC<{ data: IFabricationRequest }> = ({ data }) => (
   </div>
 );
 
-const PlaceholderTab: React.FC<{ label: string }> = ({ label }) => (
-  <GlassCard>
-    <div className={styles.placeholder}>{label}</div>
-  </GlassCard>
-);
-
 export const FidDetailPage: React.FC = () => {
   const params = useParams();
   const fid = params.fid ?? "";
@@ -169,21 +168,11 @@ export const FidDetailPage: React.FC = () => {
             </GlassCard>
           </div>
         )}
-        {tab === "budget" && (
-          <PlaceholderTab label="Máscara de orçamento — próxima etapa (F2c)." />
-        )}
-        {tab === "approval" && (
-          <PlaceholderTab label="Aprovação Petrobras — próxima etapa." />
-        )}
-        {tab === "production" && (
-          <PlaceholderTab label="Produção & Montagem — Fase 2." />
-        )}
-        {tab === "quality" && (
-          <PlaceholderTab label="Qualidade & Databook — Fase 2." />
-        )}
-        {tab === "attachments" && (
-          <PlaceholderTab label="Anexos & Timeline — próxima etapa." />
-        )}
+        {tab === "budget" && <BudgetMask fid={data.fid} data={data} />}
+        {tab === "approval" && <ApprovalTab fid={data.fid} data={data} />}
+        {tab === "production" && <ProductionTab fid={data.fid} data={data} />}
+        {tab === "quality" && <QualityTab fid={data.fid} data={data} />}
+        {tab === "attachments" && <AttachmentsTab data={data} />}
       </div>
     </div>
   );

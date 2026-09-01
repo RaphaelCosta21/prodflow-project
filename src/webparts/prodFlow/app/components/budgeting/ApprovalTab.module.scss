@@ -1,0 +1,85 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.55;
+}
+
+.step.done,
+.step.current {
+  opacity: 1;
+}
+
+.stepDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--card-bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.step.done .stepDot {
+  color: #fff;
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.step.current .stepDot {
+  color: #fff;
+  background: var(--primary-accent);
+  border-color: var(--primary-accent);
+}
+
+.stepLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stepLine {
+  flex: 1;
+  min-width: 20px;
+  height: 2px;
+  background: var(--border);
+}
+
+.rejected {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.approvalInfo {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}

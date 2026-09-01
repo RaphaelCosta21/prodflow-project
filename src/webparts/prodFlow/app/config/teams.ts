@@ -1,15 +1,16 @@
 // Teams that act along a sub-item's route (§4/§7.4). Colors are discreet legend colors.
+// Keys/labels are English so they double as the member role names.
 export type TeamKey =
-  | "projetos"
-  | "planejamento"
-  | "engIndustrial"
+  | "projects"
+  | "planning"
+  | "industrialEngineering"
   | "scm"
-  | "compras"
+  | "purchasing"
   | "workshop"
-  | "qualidade"
-  | "almoxarifado"
+  | "quality"
+  | "warehouse"
   | "serviceExcellence"
-  | "usinando";
+  | "machining";
 
 export interface ITeamDef {
   key: TeamKey;
@@ -18,30 +19,24 @@ export interface ITeamDef {
 }
 
 export const TEAMS: Record<TeamKey, ITeamDef> = {
-  projetos: { key: "projetos", label: "Projetos", color: "#0a58ca" },
-  planejamento: {
-    key: "planejamento",
-    label: "Planejamento",
-    color: "#7c3aed",
-  },
-  engIndustrial: {
-    key: "engIndustrial",
-    label: "Eng. Industrial",
+  projects: { key: "projects", label: "Projects", color: "#0a58ca" },
+  planning: { key: "planning", label: "Planning (PCP)", color: "#7c3aed" },
+  industrialEngineering: {
+    key: "industrialEngineering",
+    label: "Industrial Engineering",
     color: "#db2777",
   },
   scm: { key: "scm", label: "SCM", color: "#0891b2" },
-  compras: { key: "compras", label: "Compras", color: "#0284c7" },
+  purchasing: { key: "purchasing", label: "Purchasing", color: "#0284c7" },
   workshop: { key: "workshop", label: "Workshop", color: "#f59e0b" },
-  qualidade: { key: "qualidade", label: "Qualidade", color: "#8b5cf6" },
-  almoxarifado: {
-    key: "almoxarifado",
-    label: "Almoxarifado",
-    color: "#14b8a6",
-  },
+  quality: { key: "quality", label: "Quality", color: "#8b5cf6" },
+  warehouse: { key: "warehouse", label: "Warehouse", color: "#14b8a6" },
   serviceExcellence: {
     key: "serviceExcellence",
     label: "Service Excellence",
     color: "#10b981",
   },
-  usinando: { key: "usinando", label: "Usinando", color: "#ea580c" },
+  machining: { key: "machining", label: "Machining", color: "#ea580c" },
 };
+
+export const TEAM_KEYS: TeamKey[] = Object.keys(TEAMS) as TeamKey[];

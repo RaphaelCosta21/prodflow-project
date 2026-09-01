@@ -7,7 +7,7 @@
 .headerRow,
 .row {
   display: grid;
-  grid-template-columns: 1fr 90px 220px 150px;
+  grid-template-columns: 1fr 90px 120px 220px 150px 36px;
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
@@ -81,6 +81,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.custo {
+  text-align: right;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .pathwayRow {
   padding: 6px 16px 12px;
   border-bottom: 1px solid var(--border-subtle);
@@ -96,6 +102,10 @@
 }
 
 .hQtd {
+  text-align: right;
+}
+
+.hCusto {
   text-align: right;
 }
 

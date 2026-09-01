@@ -1,0 +1,367 @@
+/**
+ * ProdFlow — SharePoint Overrides
+ * Strips the SharePoint chrome and width limits so the web part owns a blank full-bleed page,
+ * both in the workbench and after deploy.
+ *
+ * ⚠️ Several selectors below use substring matching ([class*="..."]). Before naming a new class
+ * in the app, avoid: comment(s), commandBar, and (with an underscore) width/max/margin/padding —
+ * those would be caught by the SharePoint rules here. Audited: no current ProdFlow class matches.
+ */
+
+// All selectors in this file target SharePoint's global DOM, not our webpart.
+// :global { } prevents CSS Modules from hashing them.
+:global {
+  // ========================================
+  // WEBPART CONTAINER OVERRIDES
+  // ========================================
+
+  // Remove default padding from webpart container
+  .CanvasZone .CanvasSection .ControlZone {
+    padding: 0 !important;
+  }
+
+  // ========================================
+  // FULL SCREEN MODE - Remove Width Limits
+  // ========================================
+
+  // Target workbenchPageContent by ID
+  #workbenchPageContent {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  // Target Canvas components that limit width
+  div[data-sp-feature-tag="Page Chrome"],
+  div[data-sp-feature-instance-id],
+  div[id*="workbench"],
+  div[class*="FluentProvider"] {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  // Remove width limits from canvas automation elements
+  div[data-automation-id*="Canvas"],
+  div[data-automation-id*="CanvasZone"],
+  div[data-automation-id*="CanvasSection"] {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
+  // Force full width on CanvasZoneContainer
+  .CanvasZoneContainer,
+  div[class*="CanvasZoneContainer"] {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  // Remove padding from CanvasComponent
+  .CanvasComponent,
+  div[class*="CanvasComponent"] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  // Remove margins and borders from main SharePoint containers
+  .CanvasComponent,
+  .CanvasZone,
+  .CanvasSection,
+  .ControlZone,
+  div[class*="CanvasZoneSectionContainer"],
+  div[class*="CanvasSection-col"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  // Force 100% width on the ProdFlow app root (css-loader emits `providerRoot_<hash>`).
+  div[class*="providerRoot"] {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  // Remove debug/highlight borders from SharePoint
+  div[style*="outline"],
+  div[class*="CanvasSection"][style*="outline"] {
+    outline: none !important;
+    border: none !important;
+  }
+
+  // ========================================
+  // SHAREPOINT CHROME OVERRIDES
+  // ========================================
+
+  // Hide SharePoint search box in chrome areas (scoped to not affect app search inputs)
+  #SuiteNavWrapper,
+  .spPageChromeAppHeaderWrapper,
+  #O365_NavHeader {
+    [data-automation-id="searchBox"],
+    .ms-SearchBox-container,
+    .ms-SearchBox {
+      display: none !important;
+    }
+  }
+
+  // Hide settings / help buttons of the SharePoint chrome
+  [data-automation-id="SettingsButton"],
+  [data-automation-id="HelpButton"] {
+    display: none !important;
+  }
+
+  // Hide SuiteNavWrapper (SharePoint top blue bar)
+  // IMPORTANT: Do NOT use substring selectors like [class*="sp-appBar"] or [class*="appBar"]
+  // because on mobile SharePoint wraps all content in a container with class
+  // "sp-appBar-parent-mobile", and substring matching hides the entire page.
+  #SuiteNavWrapper,
+  div[id="SuiteNavWrapper"],
+  div[class*="SuiteNavWrapper"],
+  div[data-sp-feature-tag="Suite Navigation"],
+  .ms-compositeHeader,
+  .od-TopBar,
+  #sp-appBar,
+  .sp-appBar:not([class*="parent"]),
+  .spDeThemeAppBar,
+  .sp-appBar-mobile {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    z-index: -999 !important;
+    opacity: 0 !important;
+  }
+
+  // Remove padding-bottom from mobile container that reserves space for appBar
+  .sp-appBar-parent-mobile {
+    padding-bottom: 0 !important;
+  }
+
+  // Hide Site Header
+  div[data-sp-feature-tag="Site header host"],
+  div[data-sp-feature-instance-id*="Site header host"],
+  div[class*="spSiteHeader"],
+  div[id*="spSiteHeader"],
+  div#spSiteHeader,
+  div#spPageChromeAppHeader,
+  .SPPageChrome-app-header,
+  .ms-HorizontalNavItem {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    z-index: -1 !important;
+    opacity: 0 !important;
+  }
+
+  // Hide page action buttons (Edit, etc). Scoped to SharePoint's own command bars —
+  // the app never renders a `commandBar` class, so nothing of ours is caught here.
+  .ms-CommandBar,
+  [data-automation-id="pageCommandBar"],
+  .commandBarWrapper,
+  [class*="commandBarWrapper"],
+  [data-sp-feature-tag*="Command"],
+  [aria-label*="Command bar"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  // Force main content to fill space
+  #workbenchPageContent,
+  .CanvasComponent {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  // Remove lateral padding from SharePoint Canvas Zones
+  .CanvasZone,
+  .CanvasZoneSectionContainer,
+  .CanvasSection {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  // Remove margin and padding from ControlZone
+  .ControlZone {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  // ========================================
+  // FULL-BLEED HARDENING
+  // ProdFlow owns the whole page. When the host section has more than one
+  // column — or the workbench edit mode injects an empty phantom column —
+  // a flex/grid CanvasZone splits the web part to half width. Force the
+  // sections to stack at full width so the app is never squeezed to ~50%.
+  // ========================================
+  .CanvasZone {
+    display: block !important;
+  }
+
+  .CanvasSection,
+  div[class*="CanvasSection-col"] {
+    float: none !important;
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  // Hide the page comments area
+  .CommentsWrapper,
+  [data-sp-feature-tag="Comments"],
+  [data-sp-feature-instance-id*="Comments"],
+  [id*="CommentsWrapper"],
+  [class*="CommentsWrapper"],
+  .Page-commentsWrapper,
+  [data-viewport-id*="Comments"] {
+    display: none !important;
+  }
+
+  // Hide Hub Navigation (top site navigation bar)
+  .ms-HubNav,
+  div[class*="ms-HubNav"] {
+    display: none !important;
+  }
+
+  // Hide Left Navigation (left sidebar navigation panel)
+  #spLeftNav,
+  div[id="spLeftNav"] {
+    display: none !important;
+  }
+
+  // Override SharePoint canvas zone
+  #spPageCanvasContent {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  // ========================================
+  // SCROLLBAR OVERRIDES (app only)
+  // ========================================
+
+  div[class*="providerRoot"] {
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+      border-radius: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 8px;
+
+      &:hover {
+        background: var(--text-muted);
+      }
+    }
+  }
+
+  // ========================================
+  // MOBILE/TABLET OVERRIDES
+  // ========================================
+
+  @media (max-width: 1024px) {
+    #SuiteNavWrapper,
+    #O365_MainLink_NavMenu {
+      display: none !important;
+    }
+
+    .CanvasZone {
+      padding: 0 !important;
+    }
+
+    #workbenchPageContent,
+    div[data-automation-id*="Canvas"] {
+      max-width: none !important;
+      width: 100% !important;
+    }
+  }
+
+  // ========================================
+  // ADDITIONAL FULL WIDTH RULES
+  // ========================================
+
+  #spPageChromeAppDiv,
+  .SPCanvas-canvaschrome,
+  .SPPageChrome-app {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .CanvasZone .CanvasZone,
+  div[role="main"],
+  div[role="article"],
+  main {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  // Override the fixed widths SharePoint sets inline on its canvas wrappers.
+  // Scoped to the known values so app elements with inline styles are untouched.
+  div[style*="width: 924px"],
+  div[style*="width: 1200px"] {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  // ========================================
+  // PRINT OVERRIDES
+  // ========================================
+
+  @media print {
+    #SuiteNavWrapper,
+    #O365_MainLink_NavMenu,
+    .ms-CommandBar,
+    .SPCanvas-canvaschrome {
+      display: none !important;
+    }
+  }
+
+  // ========================================
+  // ACCESSIBILITY ENHANCEMENTS (app only)
+  // Scoped so it complements Fluent v9's focus ring instead of fighting it page-wide.
+  // ========================================
+
+  div[class*="providerRoot"] *:focus-visible {
+    outline: 2px solid var(--primary-accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-contrast: high) {
+    div[class*="providerRoot"] * {
+      border-color: currentColor !important;
+    }
+  }
+
+  // ========================================
+  // REDUCED MOTION
+  // ========================================
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+} // end :global

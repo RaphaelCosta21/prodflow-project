@@ -1,0 +1,97 @@
+.gantt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.timeline,
+.row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeline {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rowLabelSpacer {
+  display: block;
+}
+
+.axis {
+  position: relative;
+  height: 18px;
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:hover {
+    background: var(--hover-bg);
+  }
+}
+
+.rowLabel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pn {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-accent);
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track {
+  position: relative;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--card-bg-elevated);
+}
+
+.bar {
+  position: absolute;
+  top: 3px;
+  height: 16px;
+  border-radius: 6px;
+  opacity: 0.9;
+  overflow: hidden;
+}
+
+.progress {
+  display: block;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.45);
+  transition: width 600ms ease;
+}
+
+.today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--danger);
+  opacity: 0.8;
+}

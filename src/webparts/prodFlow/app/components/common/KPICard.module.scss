@@ -1,0 +1,89 @@
+.card {
+  --kpi-accent: var(--primary-accent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--kpi-accent);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease,
+    border-color 250ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.trendUp,
+.trendDown {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trendUp {
+  color: var(--success);
+}
+
+.trendDown {
+  color: var(--danger);
+}
+
+.bar {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--card-bg-elevated);
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 6px;
+    background: var(--kpi-accent);
+    transition: width 600ms ease;
+  }
+}
+
+.spark {
+  margin-top: 8px;
+  height: 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+}
