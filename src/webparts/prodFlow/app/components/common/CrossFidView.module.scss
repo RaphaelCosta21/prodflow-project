@@ -72,6 +72,13 @@
   &:hover {
     background: var(--hover-bg);
   }
+
+  // Fluent's Dropdown/Input roots ship a default min-width that overflows these narrow columns.
+  [class*="fui-Dropdown"],
+  [class*="fui-Input"] {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .left {

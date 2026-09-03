@@ -35,22 +35,22 @@ export interface INavGroup {
   items: INavItem[];
 }
 
-// Collapsible sidebar structure (Overview · Budgeting · Production · Planning · Tools · Admin).
+// Collapsible sidebar structure (Visão Geral · Orçamentação · Produção · Planejamento · Ferramentas · Admin).
 export const NAV_GROUPS: INavGroup[] = [
   {
     key: "overview",
-    label: "Overview",
+    label: "Visão Geral",
     icon: Home24Regular,
     items: [
       {
         key: "dashboard",
-        label: "Dashboard",
+        label: "Painel",
         route: ROUTES.dashboard,
         icon: DataArea24Regular,
       },
       {
         key: "notifications",
-        label: "Notifications",
+        label: "Notificações",
         route: ROUTES.notifications,
         icon: Alert24Regular,
       },
@@ -58,42 +58,42 @@ export const NAV_GROUPS: INavGroup[] = [
   },
   {
     key: "budgeting",
-    label: "Budgeting",
+    label: "Orçamentação",
     icon: Money24Regular,
     items: [
       {
         key: "budgetingBoard",
-        label: "Budgeting Board",
+        label: "Quadro de Orçamentação",
         route: ROUTES.budgetingBoard,
         icon: Board24Regular,
       },
       {
         key: "requests",
-        label: "Requests (FIDs)",
+        label: "Solicitações (FIDs)",
         route: ROUTES.requests,
         icon: Document24Regular,
       },
       {
         key: "subItems",
-        label: "Sub-items & Delineation",
+        label: "Sub-itens & Delineação",
         route: ROUTES.subItems,
         icon: ClipboardTask24Regular,
       },
       {
         key: "quotations",
-        label: "Quotations (SCM)",
+        label: "Cotações (SCM)",
         route: ROUTES.quotations,
         icon: Cart24Regular,
       },
       {
         key: "budgetReports",
-        label: "Budget Reports",
+        label: "Relatórios de Orçamento",
         route: ROUTES.budgetReports,
         icon: Money24Regular,
       },
       {
         key: "approvals",
-        label: "Approvals",
+        label: "Aprovações",
         route: ROUTES.approvals,
         icon: CheckmarkCircle24Regular,
       },
@@ -101,42 +101,42 @@ export const NAV_GROUPS: INavGroup[] = [
   },
   {
     key: "production",
-    label: "Production",
+    label: "Produção",
     icon: Wrench24Regular,
     items: [
       {
         key: "productionBoard",
-        label: "Production Board",
+        label: "Quadro de Produção",
         route: ROUTES.productionBoard,
         icon: Board24Regular,
       },
       {
         key: "workOrders",
-        label: "Work Orders",
+        label: "Ordens de Fabricação",
         route: ROUTES.workOrders,
         icon: ClipboardTask24Regular,
       },
       {
         key: "procurement",
-        label: "Procurement (RC/PO)",
+        label: "Suprimentos (RC/PO)",
         route: ROUTES.procurement,
         icon: Cart24Regular,
       },
       {
         key: "workshop",
-        label: "Workshop",
+        label: "Oficina",
         route: ROUTES.workshop,
         icon: Wrench24Regular,
       },
       {
         key: "quality",
-        label: "Quality & Databook",
+        label: "Qualidade & Databook",
         route: ROUTES.quality,
         icon: Beaker24Regular,
       },
       {
         key: "warehouse",
-        label: "Warehouse",
+        label: "Almoxarifado",
         route: ROUTES.warehouse,
         icon: Box24Regular,
       },
@@ -150,18 +150,18 @@ export const NAV_GROUPS: INavGroup[] = [
   },
   {
     key: "planning",
-    label: "Planning",
+    label: "Planejamento",
     icon: CalendarLtr24Regular,
     items: [
       {
         key: "planner",
-        label: "Planner",
+        label: "Planejador",
         route: ROUTES.planner,
         icon: DataArea24Regular,
       },
       {
         key: "timeline",
-        label: "Timeline (Gantt)",
+        label: "Cronograma (Gantt)",
         route: ROUTES.timeline,
         icon: CalendarLtr24Regular,
       },
@@ -169,18 +169,18 @@ export const NAV_GROUPS: INavGroup[] = [
   },
   {
     key: "tools",
-    label: "Tools",
+    label: "Ferramentas",
     icon: Toolbox24Regular,
     items: [
       {
         key: "smartLabels",
-        label: "Smart Labels (QR)",
+        label: "Etiquetas Smart (QR)",
         route: ROUTES.smartLabels,
         icon: Tag24Regular,
       },
       {
         key: "mobileScan",
-        label: "Mobile Scan",
+        label: "Leitura Mobile",
         route: ROUTES.mobileScan,
         icon: Phone24Regular,
       },
@@ -188,18 +188,18 @@ export const NAV_GROUPS: INavGroup[] = [
   },
   {
     key: "admin",
-    label: "Admin",
+    label: "Administração",
     icon: Settings24Regular,
     items: [
       {
         key: "configuration",
-        label: "Configuration",
+        label: "Configuração",
         route: ROUTES.configuration,
         icon: Settings24Regular,
       },
       {
         key: "members",
-        label: "Members Management",
+        label: "Gestão de Membros",
         route: ROUTES.members,
         icon: People24Regular,
       },

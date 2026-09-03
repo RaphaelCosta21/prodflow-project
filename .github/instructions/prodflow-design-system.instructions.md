@@ -35,30 +35,49 @@ status semantics), with **glassmorphism & liquid glass** surfaces. Professional,
 
 Applied via `.prodflowLight` / `.prodflowDark` on the root. Use the variable, not the hex.
 
-> **Oceaneering blue is a PLACEHOLDER** pending the official brand hex (plan open item #6). When the
-> brand guideline value is confirmed, update `--primary-accent` in both theme files only — nothing else.
+> **Official brand palette** (see `brand-reference/prodflow-brand-board.jpg`):
+> Ocean Navy `#00263E` (primary chrome) · Deep Blue `#003B5C` (secondary navy) ·
+> Engineering Blue `#0072CE` · Technology Cyan `#00B4E6` · Orange `#FF8A00` ·
+> Neutral Gray `#A7B3C2` · White `#FFFFFF`.
+> Semantic status colors are deliberately **not** brand colors — they stay independent.
 
 ### Surfaces & Chrome
 
-| Token                | Light (default)         | Dark                    | Use                              |
-| -------------------- | ----------------------- | ----------------------- | -------------------------------- |
-| `--main-bg`          | `#f5f8fc`               | `#0a1929`               | Page background                  |
-| `--card-bg`          | `#ffffff`               | `#0f2338`               | Card / panel background          |
-| `--card-bg-elevated` | `#eef4fb`               | `#16324c`               | Raised surfaces, inputs-in-cards |
-| `--sidebar-bg`       | `#0a1929`               | `#081422`               | Sidebar (navy in both themes)    |
-| `--header-bg`        | `#ffffff`               | `#0f2338`               | Top header                       |
-| `--input-bg`         | `#eef4fb`               | `#16324c`               | Form inputs                      |
-| `--hover-bg`         | `rgba(10,41,89,.04)`    | `rgba(255,255,255,.04)` | Row/item hover                   |
-| `--glass-bg`         | `rgba(255,255,255,.75)` | `rgba(15,35,56,.7)`     | Glassmorphism fill (blur ~18px)  |
-| `--glass-border`     | `rgba(10,41,89,.08)`    | `rgba(255,255,255,.08)` | Glass border                     |
+| Token                | Light (default)         | Dark                    | Use                               |
+| -------------------- | ----------------------- | ----------------------- | --------------------------------- |
+| `--main-bg`          | `#f4f8fb`               | `#001a29`               | Page background                   |
+| `--card-bg`          | `#ffffff`               | `#00263e`               | Card / panel background           |
+| `--card-bg-elevated` | `#edf4f9`               | `#003b5c`               | Raised surfaces, inputs-in-cards  |
+| `--sidebar-bg`       | `#00263e`               | `#00263e`               | Sidebar (Ocean Navy, both themes) |
+| `--header-bg`        | `#00263e`               | `#00263e`               | Top header (Ocean Navy)           |
+| `--footer-bg`        | `#00263e`               | `#00263e`               | Bottom status bar (Ocean Navy)    |
+| `--input-bg`         | `#edf4f9`               | `#003b5c`               | Form inputs                       |
+| `--hover-bg`         | `rgba(0,59,92,.04)`     | `rgba(255,255,255,.05)` | Row/item hover                    |
+| `--glass-bg`         | `rgba(255,255,255,.75)` | `rgba(0,38,62,.7)`      | Glassmorphism fill (blur ~18px)   |
+| `--glass-border`     | `rgba(0,59,92,.08)`     | `rgba(255,255,255,.08)` | Glass border                      |
+
+> Deep Blue `#003B5C` is the **secondary** navy: the top stop of `--gradient-header` and the raised
+> surfaces in dark mode. The chrome itself is always Ocean Navy `#00263E`.
+
+> The header is navy in both themes, so anything painted on `--header-bg` / `--gradient-header` must
+> use the chrome text tokens `--header-text`, `--header-text-secondary`, `--header-text-muted` (plus
+> `--header-border`, `--header-input-bg`, `--header-hover`) — never the global `--text-*` tokens.
 
 ### Brand & Accents
 
 | Token                | Light     | Dark      | Meaning                                      |
 | -------------------- | --------- | --------- | -------------------------------------------- |
-| `--primary-accent`   | `#0a58ca` | `#2f81f7` | Oceaneering blue — primary actions/focus/nav |
-| `--secondary-accent` | `#0284c7` | `#38bdf8` | Cyan — secondary emphasis                    |
-| `--tertiary-accent`  | `#475569` | `#64748b` | Slate — tertiary/neutral highlight           |
+| `--primary-accent`   | `#0072ce` | `#2b9fe2` | Engineering Blue — primary actions/focus/nav |
+| `--secondary-accent` | `#00b4e6` | `#00b4e6` | Technology Cyan — secondary emphasis         |
+| `--tertiary-accent`  | `#ff8a00` | `#ff8a00` | Brand Orange — sparing "flow" highlight      |
+
+> `--sidebar-active` is Technology Cyan `#00b4e6` in both themes. Cyan and orange fail AA as text
+> backgrounds — keep them for bars, borders, focus rings and chart series, never behind white text.
+> `--gradient-primary` is blue-only for that reason (white button labels sit on it).
+
+> The active sidebar item is a **square 3px left bar** (`border-left`, no radius) plus label and icon
+> in `--sidebar-active`. Nav rows are full-bleed — horizontal padding lives on the row, not on `.nav`,
+> so the bar reaches the sidebar edge.
 
 ### Semantic (status — same in both themes)
 
@@ -73,11 +92,11 @@ Applied via `.prodflowLight` / `.prodflowDark` on the root. Use the variable, no
 
 | Token              | Light     | Dark      |
 | ------------------ | --------- | --------- |
-| `--text-primary`   | `#0f2338` | `#e8eef6` |
-| `--text-secondary` | `#475569` | `#94a8c0` |
-| `--text-muted`     | `#94a3b8` | `#64748b` |
-| `--border`         | `#dbe6f2` | `#1c3a5a` |
-| `--border-subtle`  | `#eef4fb` | `#12283f` |
+| `--text-primary`   | `#00263e` | `#eaf2f8` |
+| `--text-secondary` | `#4a5c6b` | `#a7b3c2` |
+| `--text-muted`     | `#8b9aa8` | `#74879a` |
+| `--border`         | `#d5e3ee` | `#00517d` |
+| `--border-subtle`  | `#edf4f9` | `#003b5c` |
 
 ### Gradients, Shadows & Overlays
 
@@ -86,6 +105,29 @@ Applied via `.prodflowLight` / `.prodflowDark` on the root. Use the variable, no
 - `--overlay-bg` — modal/scrim (40–60% opacity). `--scrollbar-thumb` / `--scrollbar-track` for scrollbars.
 
 > When you add a new token, add it to **both** `light.module.scss` and `dark.module.scss`.
+
+## Brand Assets
+
+Bundled, importable via ESM (`import symbol from "../../../assets/brand/prodflow-symbol.svg"`):
+
+| Asset                                    | Use                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| `assets/brand/prodflow-lockup.png`       | **Full colour lockup**, transparent — sidebar brand, footer      |
+| `assets/brand/prodflow-symbol.svg`       | **Default mark** — collapsed sidebar, dialog headers, watermarks |
+| `assets/brand/prodflow-symbol.png`       | 1024px raster; only when a vector cannot be used                 |
+| `assets/brand/prodflow-lockup-white.png` | Mono lockup for dark/photo backgrounds                           |
+| `assets/brand/prodflow-lockup-black.png` | Mono lockup for print, PDF/Excel export headers and QR labels    |
+| `assets/brand/prodflow-icon-64.png`      | Source of the manifest `iconImageUrl` data URI                   |
+| `assets/OII-*`                           | Oceaneering corporate logo — sidebar credits only                |
+
+- The symbol is full-color and reads on both light surfaces and the navy chrome — do not recolor it.
+- `prodflow-lockup.png` is chroma-keyed from the flat-background export by
+  `scripts/build-lockup-png.ps1`. Its white wordmark disappears on light surfaces — use it **only on
+  the navy chrome**; elsewhere use the symbol or a mono lockup.
+- Raster icons (`teams/*_color.png`, `_outline.png`, `prodflow-icon-64.png`) are generated by
+  `scripts/generate-brand-icons.ps1`; regenerate rather than editing them by hand.
+- `brand-reference/` holds the brand board and flat-background JPGs. It is **outside the bundle** —
+  never import from it.
 
 ## Spacing, Radius & Motion
 

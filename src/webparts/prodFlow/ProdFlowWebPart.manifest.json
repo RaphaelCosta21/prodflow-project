@@ -12,17 +12,26 @@
   // Components that allow authors to embed arbitrary script code should set this to true.
   // https://support.office.com/en-us/article/Turn-scripting-capabilities-on-or-off-1f2c515f-5d7e-448a-9fd7-835da935584f
   "requiresCustomScript": false,
-  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "supportedHosts": [
+    "SharePointWebPart",
+    "TeamsPersonalApp",
+    "TeamsTab",
+    "SharePointFullPage"
+  ],
   "supportsThemeVariants": true,
 
-  "preconfiguredEntries": [{
-    "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
-    "group": { "default": "Advanced" },
-    "title": { "default": "ProdFlow" },
-    "description": { "default": "CIDEQ Production Management System" },
-    "officeFabricIconFontName": "Page",
-    "properties": {
-      "description": "ProdFlow"
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
+      "group": { "default": "Advanced" },
+      "title": { "default": "ProdFlow" },
+      "description": { "default": "CIDEQ Production Management System" },
+      // ProdFlow symbol, inlined because the toolbox needs a resolvable URL at manifest-read time.
+      // Regenerate with scripts/generate-brand-icons.ps1.
+      "iconImageUrl": "data:image/png;base64,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",
+      "properties": {
+        "description": "ProdFlow"
+      }
     }
-  }]
+  ]
 }

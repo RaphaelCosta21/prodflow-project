@@ -1,32 +1,45 @@
-// ProdFlow design tokens — LIGHT theme (default). Oceaneering identity: navy/blue + neutrals.
+// ProdFlow design tokens — LIGHT theme (default). Official brand palette:
+// Ocean Navy #00263E · Deep Blue #003B5C · Engineering Blue #0072CE · Technology Cyan #00B4E6
+// · Orange #FF8A00 · Neutral Gray #A7B3C2 · White #FFFFFF.
 // Applied via the .prodflowLight root class. Never hardcode these hex values in components —
 // always reference the CSS custom property (var(--...)). Keep in sync with dark.module.scss.
-// NOTE: --primary-accent is a PLACEHOLDER Oceaneering blue pending the official brand hex.
 
 .prodflowLight {
   /* Surfaces & Chrome */
-  --main-bg: #f5f8fc;
+  --main-bg: #f4f8fb;
   --card-bg: #ffffff;
-  --card-bg-elevated: #eef4fb;
-  --input-bg: #eef4fb;
-  --hover-bg: rgba(10, 41, 89, 0.04);
+  --card-bg-elevated: #edf4f9;
+  --input-bg: #edf4f9;
+  --hover-bg: rgba(0, 59, 92, 0.04);
   --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(10, 41, 89, 0.08);
+  --glass-border: rgba(0, 59, 92, 0.08);
 
-  /* Sidebar & Header (stay navy in both themes) */
-  --sidebar-bg: #0a1929;
-  --sidebar-text: #e8eef6;
-  --sidebar-text-muted: #94a8c0;
-  --sidebar-active: #2f81f7;
-  --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --header-bg: #ffffff;
-  --header-text: #0f2338;
+  /* Sidebar & Header (Ocean Navy — stays navy in both themes) */
+  --sidebar-bg: #00263e;
+  --sidebar-text: #eaf2f8;
+  --sidebar-text-muted: #a7b3c2;
+  --sidebar-active: #00b4e6;
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --header-bg: #00263e;
+  --header-text: #eaf2f8;
+  --header-text-secondary: #c4d3e0;
+  --header-text-muted: #a7b3c2;
+  --header-border: rgba(255, 255, 255, 0.1);
+  --header-input-bg: rgba(255, 255, 255, 0.08);
+  --header-hover: rgba(255, 255, 255, 0.1);
 
-  /* Brand & Accents (Oceaneering blue — PLACEHOLDER, confirm brand hex) */
-  --primary-accent: #0a58ca;
-  --primary-accent-hover: #0847a5;
-  --secondary-accent: #0284c7;
-  --tertiary-accent: #475569;
+  /* Footer (Ocean Navy chrome, like the sidebar/header) */
+  --footer-bg: #00263e;
+  --footer-border: rgba(255, 255, 255, 0.1);
+  --footer-text: #eaf2f8;
+  --footer-text-muted: #a7b3c2;
+
+  /* Brand & Accents */
+  --primary-accent: #0072ce;
+  --primary-accent-hover: #005ba6;
+  --secondary-accent: #00b4e6;
+  --tertiary-accent: #ff8a00;
 
   /* Semantic (status) */
   --success: #10b981;
@@ -39,27 +52,27 @@
   --info-bg: rgba(14, 165, 233, 0.12);
 
   /* Text & Borders */
-  --text-primary: #0f2338;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border: #dbe6f2;
-  --border-subtle: #eef4fb;
+  --text-primary: #00263e;
+  --text-secondary: #4a5c6b;
+  --text-muted: #8b9aa8;
+  --border: #d5e3ee;
+  --border-subtle: #edf4f9;
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #0a58ca 0%, #0284c7 100%);
-  --gradient-accent: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-  --gradient-header: linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%);
+  /* Gradients — white text sits on --gradient-primary, so both stops must stay AA-legible. */
+  --gradient-primary: linear-gradient(135deg, #005ba6 0%, #0072ce 100%);
+  --gradient-accent: linear-gradient(135deg, #0072ce 0%, #0090d9 100%);
+  --gradient-header: linear-gradient(180deg, #003b5c 0%, #00263e 100%);
 
   /* Shadows */
   --shadow-card:
-    0 1px 3px rgba(10, 41, 89, 0.08), 0 1px 2px rgba(10, 41, 89, 0.06);
+    0 1px 3px rgba(0, 59, 92, 0.08), 0 1px 2px rgba(0, 59, 92, 0.06);
   --shadow-card-hover:
-    0 8px 24px rgba(10, 41, 89, 0.12), 0 2px 6px rgba(10, 41, 89, 0.08);
-  --shadow-glow: 0 0 0 3px rgba(10, 88, 202, 0.25);
+    0 8px 24px rgba(0, 59, 92, 0.12), 0 2px 6px rgba(0, 59, 92, 0.08);
+  --shadow-glow: 0 0 0 3px rgba(0, 114, 206, 0.25);
 
   /* Overlays & Scrollbars */
-  --overlay-bg: rgba(10, 25, 41, 0.45);
-  --scrollbar-thumb: rgba(10, 41, 89, 0.25);
+  --overlay-bg: rgba(0, 38, 62, 0.45);
+  --scrollbar-thumb: rgba(0, 59, 92, 0.25);
   --scrollbar-track: transparent;
 
   /* Layering */

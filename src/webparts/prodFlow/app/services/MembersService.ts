@@ -4,6 +4,13 @@ import { ConfigService } from "./ConfigService";
 const MEMBERS_KEY = "members";
 const MEMBERS_TYPE = "members";
 
+// Photos are resolved from SharePoint at render time; purge any base64 left by older versions.
+function stripLegacyPhoto(member: ITeamMember): ITeamMember {
+  const clean = { ...member } as ITeamMember & { photoUrl?: string };
+  delete clean.photoUrl;
+  return clean;
+}
+
 // Members live as ONE JSON row in prodflow-config (no extra list).
 export class MembersService {
   public static async getAll(): Promise<IMembersData> {
@@ -14,7 +21,7 @@ export class MembersService {
   private static async save(members: ITeamMember[]): Promise<void> {
     await ConfigService.setJson<IMembersData>(
       MEMBERS_KEY,
-      { members },
+      { members: members.map(stripLegacyPhoto) },
       MEMBERS_TYPE,
     );
   }

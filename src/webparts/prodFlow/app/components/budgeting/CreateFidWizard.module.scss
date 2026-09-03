@@ -1,0 +1,370 @@
+.surface {
+  width: 820px;
+  max-width: 95vw;
+  padding: 0;
+}
+
+.wizard {
+  display: flex;
+  flex-direction: column;
+  height: min(85vh, 720px);
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-shrink: 0;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.headerMark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  object-fit: contain;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 250ms ease,
+    color 250ms ease;
+
+  &:hover:not(:disabled) {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* ── Step indicator ── */
+.steps {
+  flex-shrink: 0;
+  padding: 16px 24px;
+  background: var(--card-bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.stepRow {
+  display: flex;
+  align-items: flex-start;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.stepItem {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.stepBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    background 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.stepTitle {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text-muted);
+  transition: color 250ms ease;
+}
+
+.stepConnector {
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 20px);
+  right: calc(-50% + 20px);
+  height: 2px;
+  background: var(--border);
+}
+
+.stepActive {
+  .stepNumber {
+    border-color: var(--primary-accent);
+    background: var(--primary-accent);
+    color: #fff;
+    box-shadow: var(--shadow-glow);
+  }
+
+  .stepTitle {
+    color: var(--primary-accent);
+    font-weight: 600;
+  }
+}
+
+.stepDone {
+  .stepNumber {
+    border-color: var(--primary-accent);
+    background: var(--primary-accent);
+    color: #fff;
+  }
+
+  .stepTitle {
+    color: var(--text-secondary);
+  }
+
+  .stepConnector {
+    background: var(--primary-accent);
+  }
+}
+
+.progress {
+  width: 100%;
+}
+
+/* ── Body ── */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.span2 {
+  grid-column: 1 / -1;
+}
+
+/* ── Derived-values callout ── */
+.callout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--primary-accent);
+  border-radius: 12px;
+  background: var(--card-bg-elevated);
+}
+
+.calloutItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calloutLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.calloutValue {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.calloutDivider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border-subtle);
+}
+
+.calloutNote {
+  flex: 1 1 220px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* ── Review ── */
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reviewGroup {
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.reviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.reviewCell,
+.reviewCellWide {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.reviewCell:nth-child(odd) {
+  border-right: 1px solid var(--border-subtle);
+}
+
+.reviewCellWide {
+  grid-column: 1 / -1;
+}
+
+.reviewGrid > :last-child {
+  border-bottom: 0;
+}
+
+.reviewLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.reviewValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.reviewNote {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ── Footer ── */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--card-bg-elevated);
+}
+
+.footerCount {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.footerActions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .grid,
+  .reviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewCell:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .stepTitle {
+    display: none;
+  }
+
+  .header,
+  .steps,
+  .body,
+  .footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

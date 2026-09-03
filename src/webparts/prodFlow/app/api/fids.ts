@@ -58,7 +58,10 @@ export function useCreateFid(): UseMutationResult<
   return useMutation({
     mutationFn: (request: Omit<IFabricationRequest, "fid">) =>
       RequestService.create(request),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.fids }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.fids });
+      await qc.invalidateQueries({ queryKey: queryKeys.fidsFull });
+    },
   });
 }
 

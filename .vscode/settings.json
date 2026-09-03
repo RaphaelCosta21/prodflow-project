@@ -13,6 +13,6 @@
   "typescript.tsdk": ".\\node_modules\\typescript\\lib",
   // Use the user-local Node 22 (nvm-windows) without needing admin to run `nvm use`.
   "terminal.integrated.env.windows": {
-    "PATH": "C:\\Users\\rcosta1\\nvm\\v22.23.2;${env:PATH}"
+    "PATH": "${env:LOCALAPPDATA}\\nvm\\v22.23.2;${env:PATH}"
   }
 }

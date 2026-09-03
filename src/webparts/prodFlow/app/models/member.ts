@@ -13,7 +13,6 @@ export interface ITeamMember {
   additionalTeams: TeamKey[]; // acts in these too
   accessLevel: AccessLevel;
   themePreference?: "light" | "dark";
-  photoUrl?: string;
   joinedDate?: string;
   isActive: boolean;
 }

@@ -1,5 +1,9 @@
 import { IAppConfig } from "../stores/useConfigStore";
 
+// Owners that always keep admin rights, even if prodflow-config is emptied or misconfigured.
+// This is the lockout guard — the stored superAdminEmails are merged on top of it.
+export const BUILT_IN_SUPER_ADMINS: string[] = ["rcosta1@oceaneering.com"];
+
 // Seed used until an admin saves the config to prodflow-config.
 // SLA numbers mirror §10.1 (business days by complexity × attendance).
 export const DEFAULT_APP_CONFIG: IAppConfig = {
@@ -12,7 +16,7 @@ export const DEFAULT_APP_CONFIG: IAppConfig = {
   statusColors: {},
   teamColors: {},
   defaultTheme: "light",
-  superAdminEmails: [],
+  superAdminEmails: BUILT_IN_SUPER_ADMINS,
   accessLevels: {
     member: {
       budgeting: "view",

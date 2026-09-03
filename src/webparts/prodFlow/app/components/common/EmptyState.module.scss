@@ -14,6 +14,14 @@
   line-height: 1;
 }
 
+.watermark {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  opacity: 0.16;
+  filter: grayscale(1);
+}
+
 .title {
   font-size: 15px;
   font-weight: 600;

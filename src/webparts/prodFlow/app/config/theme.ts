@@ -5,26 +5,26 @@ import {
   Theme,
 } from "@fluentui/react-components";
 
-// Oceaneering blue brand ramp — PLACEHOLDER pending the official brand hex (plan open item #6).
-// When confirmed, adjust these 16 steps; nothing else needs to change.
-const oceaneeringBrand: BrandVariants = {
-  10: "#020305",
-  20: "#0d1a2d",
-  30: "#122a4a",
-  40: "#153762",
-  50: "#17457b",
-  60: "#175495",
-  70: "#1463b0",
-  80: "#2f74d0",
-  90: "#4a86dc",
-  100: "#6498e6",
-  110: "#7faaef",
-  120: "#99bcf5",
-  130: "#b4cef9",
-  140: "#cee0fc",
-  150: "#e7effe",
-  160: "#f5f9ff",
+// ProdFlow brand ramp built around Engineering Blue #0072CE (step 80 = Fluent's primary brand
+// background) and anchored at Ocean Navy #00263E on the dark end.
+const prodflowBrand: BrandVariants = {
+  10: "#00101a",
+  20: "#001a29",
+  30: "#00263e",
+  40: "#003b5c",
+  50: "#004a73",
+  60: "#005ba6",
+  70: "#0066ba",
+  80: "#0072ce",
+  90: "#1b82d8",
+  100: "#3893df",
+  110: "#55a4e6",
+  120: "#72b5ec",
+  130: "#8fc6f1",
+  140: "#acd7f6",
+  150: "#cbe7fa",
+  160: "#eaf4fd",
 };
 
-export const oceaneeringLightTheme: Theme = createLightTheme(oceaneeringBrand);
-export const oceaneeringDarkTheme: Theme = createDarkTheme(oceaneeringBrand);
+export const oceaneeringLightTheme: Theme = createLightTheme(prodflowBrand);
+export const oceaneeringDarkTheme: Theme = createDarkTheme(prodflowBrand);

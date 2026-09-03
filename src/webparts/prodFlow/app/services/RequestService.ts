@@ -8,6 +8,7 @@ import {
   RequestStatus,
 } from "../models";
 import { parseFabricationRequest } from "../schemas/fabricationRequest.schema";
+import { parseSpJson } from "../utils/spText";
 
 const MAX_RETRIES = 5;
 
@@ -19,23 +20,6 @@ function formatFid(n: number): string {
 
 function escapeOData(value: string): string {
   return value.replace(/'/g, "''");
-}
-
-// SharePoint returns rich-text multiline fields HTML-encoded (e.g. "{" -> "&#123;"), which breaks
-// JSON.parse. Decode the common/numeric entities before parsing (no-op for plain-text fields).
-function decodeSpHtml(value: string): string {
-  return value
-    .replace(/&#(\d+);/g, (_m, n: string) =>
-      String.fromCharCode(parseInt(n, 10)),
-    )
-    .replace(/&#x([0-9a-fA-F]+);/g, (_m, n: string) =>
-      String.fromCharCode(parseInt(n, 16)),
-    )
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
 }
 
 export class RequestService {
@@ -82,9 +66,7 @@ export class RequestService {
     for (const it of items as Record<string, unknown>[]) {
       try {
         parsed.push(
-          parseFabricationRequest(
-            JSON.parse(decodeSpHtml(String(it[f.jsonData] ?? "{}"))),
-          ),
+          parseFabricationRequest(parseSpJson(String(it[f.jsonData] ?? "{}"))),
         );
       } catch {
         // Skip malformed rows so one bad item cannot break the whole dashboard.
@@ -106,7 +88,7 @@ export class RequestService {
     if (!items.length) return undefined;
     const it = items[0] as Record<string, unknown>;
     const data = parseFabricationRequest(
-      JSON.parse(decodeSpHtml(String(it[f.jsonData] ?? "{}"))),
+      parseSpJson(String(it[f.jsonData] ?? "{}")),
     );
     return { id: Number(it.Id), etag: RequestService.readEtag(it), data };
   }

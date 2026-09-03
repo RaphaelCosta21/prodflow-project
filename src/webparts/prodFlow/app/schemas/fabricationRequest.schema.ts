@@ -252,3 +252,43 @@ export function safeParseFabricationRequest(
     IFabricationRequest
   >;
 }
+
+// Validates the create-FID form input, before buildNewRequest() derives the full payload.
+export const newRequestInputSchema = z.object({
+  osNumber: z.string().min(1, "Informe o número da OS/OM."),
+  osType: z.enum(["OS", "OM"]).optional(),
+  projeto: z.string().min(1, "Informe o projeto."),
+  lote: z.string().optional(),
+  drawingCode: z.string().min(1, "Informe o código do desenho (CRD)."),
+  drawingRevision: z.string().optional(),
+  descricao: z.string().min(1, "Informe a descrição resumida."),
+  comentarios: z.string().optional(),
+  tipoOrcamento: z.string().min(1, "Informe o tipo de orçamento."),
+  complexidadeUsinagem: complexitySchema,
+  complexidadeCaldeiraria: complexitySchema,
+  atendimento: attendanceSchema,
+  solicitacaoOrcamento: z.string().optional(),
+  prazoDiasCorridos: z
+    .number({ invalid_type_error: "Informe um número de dias válido." })
+    .int("Use um número inteiro de dias.")
+    .min(0, "O prazo não pode ser negativo.")
+    .optional(),
+  createdBy: z.string(),
+});
+
+// Maps issues to { field: message } so the wizard can drive Fluent's validationState per Field.
+export function validateNewRequest(
+  data: unknown,
+  fields?: string[],
+): Record<string, string> {
+  const result = newRequestInputSchema.safeParse(data);
+  if (result.success) return {};
+  const errors: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const key = String(issue.path[0] ?? "");
+    if (!key || errors[key]) continue;
+    if (fields && fields.indexOf(key) === -1) continue;
+    errors[key] = issue.message;
+  }
+  return errors;
+}

@@ -94,11 +94,19 @@
 
 .strategy {
   min-width: 0;
+
+  // Fluent's Dropdown root ships min-width:250px, which overflowed this cell over the STATUS badge.
+  [class*="fui-Dropdown"] {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .status {
   display: flex;
   align-items: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hQtd {

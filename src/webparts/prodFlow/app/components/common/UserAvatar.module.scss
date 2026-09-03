@@ -1,0 +1,21 @@
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--card-bg-elevated);
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1;
+  flex-shrink: 0;
+  user-select: none;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}

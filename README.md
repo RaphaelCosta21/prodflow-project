@@ -8,7 +8,7 @@ Short summary on functionality and used technologies.
 
 ## Used SharePoint Framework Version
 
-![version](https://img.shields.io/badge/version-1.20.0-green.svg)
+![version](https://img.shields.io/badge/version-1.23.2-green.svg)
 
 ## Applies to
 
@@ -45,8 +45,12 @@ Short summary on functionality and used technologies.
 - Clone this repository
 - Ensure that you are at the solution folder
 - in the command-line run:
-  - **npm install**
-  - **gulp serve**
+  - **npm install --legacy-peer-deps**
+  - **npm start** (or **npm run serve**)
+
+SPFx 1.23 uses the Heft toolchain, so this project does not have a `gulpfile`. The start command
+runs Heft in incremental build/watch mode and serves the local development assets. Use the SPFx
+Debug Toolbar or a hosted SharePoint workbench to preview the web part.
 
 > Include any additional steps as needed.
 

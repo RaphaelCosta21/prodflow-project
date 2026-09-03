@@ -2,6 +2,7 @@ import * as React from "react";
 import { AccessLevel, ITeamMember } from "../models";
 import { TeamKey } from "../config/teams";
 import { useMembers, useAppConfig } from "../api/config";
+import { BUILT_IN_SUPER_ADMINS } from "../config/appConfigDefaults";
 import { AccessArea, AccessPermission } from "../stores/useConfigStore";
 import { useCurrentUser } from "./useCurrentUser";
 
@@ -31,12 +32,16 @@ export function useAccessLevel(): IAccessLevel {
     const members = membersData?.members ?? [];
     const email = user.email.toLowerCase();
     const member = members.filter((m) => m.email.toLowerCase() === email)[0];
-    const superAdmins = (config?.superAdminEmails ?? []).map((e) =>
-      e.toLowerCase(),
-    );
+    const superAdmins = BUILT_IN_SUPER_ADMINS.concat(
+      config?.superAdminEmails ?? [],
+    ).map((e) => e.toLowerCase());
 
-    // No members registered yet → don't lock everyone out of the admin screens.
-    const bootstrap = members.length === 0;
+    // Until an actual admin exists, don't lock everyone out of the admin screens —
+    // registering the first non-admin member must not strand the site without one.
+    const bootstrap =
+      superAdmins.length === 0 &&
+      members.filter((m) => m.accessLevel === "admin" && m.isActive).length ===
+        0;
     const accessLevel: AccessLevel = member?.accessLevel ?? "member";
     const isAdmin =
       accessLevel === "admin" || superAdmins.indexOf(email) >= 0 || bootstrap;

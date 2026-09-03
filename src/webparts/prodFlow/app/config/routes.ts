@@ -22,6 +22,7 @@ export const ROUTES = {
   mobileScan: "/tools/mobile-scan",
   configuration: "/admin/configuration",
   members: "/admin/members",
+  patchNotes: "/admin/patch-notes",
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

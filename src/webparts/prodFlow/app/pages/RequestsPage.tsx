@@ -1,7 +1,5 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@fluentui/react-components";
-import { Add24Regular } from "@fluentui/react-icons";
 import { IFabricationRequestHeader } from "../models";
 import { useFids } from "../api/fids";
 import GlassCard from "../components/common/GlassCard";
@@ -10,13 +8,11 @@ import StatusBadge from "../components/common/StatusBadge";
 import PhaseBadge from "../components/common/PhaseBadge";
 import EmptyState from "../components/common/EmptyState";
 import SkeletonLoader from "../components/common/SkeletonLoader";
-import CreateFidDialog from "../components/budgeting/CreateFidDialog";
 import { fidDetailPath } from "../config/routes";
 import styles from "./RequestsPage.module.scss";
 
 export const RequestsPage: React.FC = () => {
   const { data, isLoading, isError, error } = useFids();
-  const [createOpen, setCreateOpen] = React.useState(false);
   const navigate = useNavigate();
 
   const columns: IDataTableColumn<IFabricationRequestHeader>[] = [
@@ -42,14 +38,7 @@ export const RequestsPage: React.FC = () => {
   return (
     <div className={styles.page}>
       <div className={styles.head}>
-        <h1 className={styles.title}>Requests (FIDs)</h1>
-        <Button
-          appearance="primary"
-          icon={<Add24Regular />}
-          onClick={() => setCreateOpen(true)}
-        >
-          Novo FID
-        </Button>
+        <h1 className={styles.title}>Solicitações (FIDs)</h1>
       </div>
       <GlassCard noBodyPadding>
         {isLoading ? (
@@ -69,7 +58,6 @@ export const RequestsPage: React.FC = () => {
           />
         )}
       </GlassCard>
-      <CreateFidDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 };

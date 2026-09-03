@@ -1,32 +1,45 @@
-// ProdFlow design tokens — DARK theme. Oceaneering identity: navy/blue + neutrals.
+// ProdFlow design tokens — DARK theme. Official brand palette:
+// Ocean Navy #00263E · Deep Blue #003B5C · Engineering Blue #0072CE · Technology Cyan #00B4E6
+// · Orange #FF8A00 · Neutral Gray #A7B3C2 · White #FFFFFF.
 // Applied via the .prodflowDark root class. Never hardcode these hex values in components —
 // always reference the CSS custom property (var(--...)). Keep in sync with light.module.scss.
-// NOTE: --primary-accent is a PLACEHOLDER Oceaneering blue pending the official brand hex.
 
 .prodflowDark {
   /* Surfaces & Chrome */
-  --main-bg: #0a1929;
-  --card-bg: #0f2338;
-  --card-bg-elevated: #16324c;
-  --input-bg: #16324c;
-  --hover-bg: rgba(255, 255, 255, 0.04);
-  --glass-bg: rgba(15, 35, 56, 0.7);
+  --main-bg: #001a29;
+  --card-bg: #00263e;
+  --card-bg-elevated: #003b5c;
+  --input-bg: #003b5c;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(0, 38, 62, 0.7);
   --glass-border: rgba(255, 255, 255, 0.08);
 
-  /* Sidebar & Header (stay navy in both themes) */
-  --sidebar-bg: #081422;
-  --sidebar-text: #e8eef6;
-  --sidebar-text-muted: #94a8c0;
-  --sidebar-active: #2f81f7;
-  --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --header-bg: #0f2338;
-  --header-text: #e8eef6;
+  /* Sidebar & Header (Ocean Navy — identical in both themes) */
+  --sidebar-bg: #00263e;
+  --sidebar-text: #eaf2f8;
+  --sidebar-text-muted: #a7b3c2;
+  --sidebar-active: #00b4e6;
+  --sidebar-hover: rgba(255, 255, 255, 0.07);
+  --sidebar-border: rgba(255, 255, 255, 0.09);
+  --header-bg: #00263e;
+  --header-text: #eaf2f8;
+  --header-text-secondary: #c4d3e0;
+  --header-text-muted: #a7b3c2;
+  --header-border: rgba(255, 255, 255, 0.09);
+  --header-input-bg: rgba(255, 255, 255, 0.07);
+  --header-hover: rgba(255, 255, 255, 0.09);
 
-  /* Brand & Accents (Oceaneering blue — PLACEHOLDER, confirm brand hex) */
-  --primary-accent: #2f81f7;
-  --primary-accent-hover: #5a9bf9;
-  --secondary-accent: #38bdf8;
-  --tertiary-accent: #64748b;
+  /* Footer (Ocean Navy chrome, like the sidebar/header) */
+  --footer-bg: #00263e;
+  --footer-border: rgba(255, 255, 255, 0.09);
+  --footer-text: #eaf2f8;
+  --footer-text-muted: #a7b3c2;
+
+  /* Brand & Accents (Engineering Blue lifted for contrast on dark surfaces) */
+  --primary-accent: #2b9fe2;
+  --primary-accent-hover: #57b5ea;
+  --secondary-accent: #00b4e6;
+  --tertiary-accent: #ff8a00;
 
   /* Semantic (status) */
   --success: #10b981;
@@ -39,25 +52,25 @@
   --info-bg: rgba(14, 165, 233, 0.16);
 
   /* Text & Borders */
-  --text-primary: #e8eef6;
-  --text-secondary: #94a8c0;
-  --text-muted: #64748b;
-  --border: #1c3a5a;
-  --border-subtle: #12283f;
+  --text-primary: #eaf2f8;
+  --text-secondary: #a7b3c2;
+  --text-muted: #74879a;
+  --border: #00517d;
+  --border-subtle: #003b5c;
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #2f81f7 0%, #38bdf8 100%);
-  --gradient-accent: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-  --gradient-header: linear-gradient(180deg, #0f2338 0%, #0a1929 100%);
+  /* Gradients — white text sits on --gradient-primary, so both stops must stay AA-legible. */
+  --gradient-primary: linear-gradient(135deg, #005ba6 0%, #0072ce 100%);
+  --gradient-accent: linear-gradient(135deg, #0072ce 0%, #0090d9 100%);
+  --gradient-header: linear-gradient(180deg, #003b5c 0%, #00263e 100%);
 
   /* Shadows */
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-card-hover:
     0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 0 3px rgba(47, 129, 247, 0.35);
+  --shadow-glow: 0 0 0 3px rgba(0, 180, 230, 0.35);
 
   /* Overlays & Scrollbars */
-  --overlay-bg: rgba(3, 10, 18, 0.6);
+  --overlay-bg: rgba(0, 15, 25, 0.6);
   --scrollbar-thumb: rgba(255, 255, 255, 0.16);
   --scrollbar-track: transparent;
 

@@ -18,16 +18,14 @@ import {
 } from "@fluentui/react-icons";
 import { AccessLevel, ITeamMember } from "../../models";
 import { TEAMS, TEAM_KEYS, TeamKey } from "../../config/teams";
+import { SP_CONFIG } from "../../config/sharepoint.config";
 import { useMembers, useSaveMember } from "../../api/config";
 import { useAccessLevel } from "../../hooks/useAccessLevel";
 import { useUIStore } from "../../stores/useUIStore";
 import EmptyState from "../common/EmptyState";
 import SkeletonLoader from "../common/SkeletonLoader";
-import PeoplePicker, {
-  IPeopleResult,
-  getAvatarColor,
-  getInitials,
-} from "./PeoplePicker";
+import UserAvatar from "../common/UserAvatar";
+import PeoplePicker, { IPeopleResult } from "./PeoplePicker";
 import styles from "./MembersManagement.module.scss";
 
 const ACCESS_LEVELS: { key: AccessLevel; label: string }[] = [
@@ -45,7 +43,6 @@ interface IPanelForm {
   team: TeamKey;
   additionalTeams: TeamKey[];
   accessLevel: AccessLevel;
-  photoUrl: string;
 }
 
 const EMPTY_FORM: IPanelForm = {
@@ -56,11 +53,10 @@ const EMPTY_FORM: IPanelForm = {
   team: "planning",
   additionalTeams: [],
   accessLevel: "member",
-  photoUrl: "",
 };
 
 export const MembersManagement: React.FC = () => {
-  const { data, isLoading } = useMembers();
+  const { data, isLoading, isError, error } = useMembers();
   const saveMember = useSaveMember();
   const access = useAccessLevel();
   const addToast = useUIStore((s) => s.addToast);
@@ -125,7 +121,6 @@ export const MembersManagement: React.FC = () => {
       team: m.team,
       additionalTeams: m.additionalTeams ?? [],
       accessLevel: m.accessLevel,
-      photoUrl: m.photoUrl ?? "",
     });
     setPickerQuery(m.name);
     setShowPanel(true);
@@ -138,7 +133,6 @@ export const MembersManagement: React.FC = () => {
       email: p.email,
       jobTitle: p.jobTitle,
       department: p.department,
-      photoUrl: p.photoUrl,
     }));
     setPickerQuery(p.displayName);
   };
@@ -188,6 +182,18 @@ export const MembersManagement: React.FC = () => {
 
   if (isLoading) {
     return <SkeletonLoader rows={8} />;
+  }
+
+  if (isError) {
+    return (
+      <EmptyState
+        title="Não foi possível carregar os membros"
+        description={
+          (error as Error)?.message ??
+          `Verifique o acesso à lista ${SP_CONFIG.lists.config}.`
+        }
+      />
+    );
   }
 
   return (
@@ -298,20 +304,12 @@ export const MembersManagement: React.FC = () => {
                       className={styles.memberCard}
                       style={{ opacity: m.isActive ? 1 : 0.5 }}
                     >
-                      {m.photoUrl ? (
-                        <img
-                          className={styles.avatar}
-                          src={m.photoUrl}
-                          alt={m.name}
-                        />
-                      ) : (
-                        <div
-                          className={styles.avatar}
-                          style={{ background: getAvatarColor(m.name) }}
-                        >
-                          {getInitials(m.name)}
-                        </div>
-                      )}
+                      <UserAvatar
+                        name={m.name}
+                        email={m.email}
+                        size={42}
+                        className={styles.avatar}
+                      />
                       <div className={styles.memberInfo}>
                         <span className={styles.memberName}>{m.name}</span>
                         <span className={styles.memberEmail}>{m.email}</span>

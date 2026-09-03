@@ -1,15 +1,9 @@
 import * as React from "react";
-import { useSpfxContext } from "../../config/SpfxContext";
+import { PeopleService, IPersonResult } from "../../services/PeopleService";
+import UserAvatar from "../common/UserAvatar";
 import styles from "./PeoplePicker.module.scss";
 
-export interface IPeopleResult {
-  id: string;
-  displayName: string;
-  email: string;
-  jobTitle: string;
-  department: string;
-  photoUrl: string;
-}
+export type IPeopleResult = IPersonResult;
 
 export interface IPeoplePickerProps {
   value: string;
@@ -18,128 +12,50 @@ export interface IPeoplePickerProps {
   placeholder?: string;
 }
 
-interface IGraphUser {
-  id: string;
-  displayName?: string;
-  mail?: string;
-  userPrincipalName?: string;
-  jobTitle?: string;
-  department?: string;
-}
-
-// Single quotes must be doubled or they break out of the OData string literal.
-function escapeODataLiteral(value: string): string {
-  return value.replace(/'/g, "''");
-}
-
-export function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-const AVATAR_COLORS = [
-  "#0a58ca",
-  "#0891b2",
-  "#7c3aed",
-  "#db2777",
-  "#f59e0b",
-  "#10b981",
-  "#8b5cf6",
-];
-
-export function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++)
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
 export const PeoplePicker: React.FC<IPeoplePickerProps> = ({
   value,
   onQueryChange,
   onSelect,
   placeholder = "Digite um nome ou e-mail...",
 }) => {
-  const spfxContext = useSpfxContext();
   const [results, setResults] = React.useState<IPeopleResult[]>([]);
   const [open, setOpen] = React.useState(false);
   const [searching, setSearching] = React.useState(false);
+  const [error, setError] = React.useState("");
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  const requestRef = React.useRef(0);
 
-  const search = React.useCallback(
-    async (query: string): Promise<void> => {
-      const term = query.trim().slice(0, 80);
-      if (term.length < 2) {
-        setResults([]);
-        setOpen(false);
-        return;
-      }
-      setSearching(true);
-      try {
-        const client = await spfxContext.msGraphClientFactory.getClient("3");
-        const safe = escapeODataLiteral(term);
-        const response = await client
-          .api("/users")
-          .filter(
-            `startswith(displayName,'${safe}') or startswith(mail,'${safe}')`,
-          )
-          .select("id,displayName,mail,userPrincipalName,jobTitle,department")
-          .top(8)
-          .get();
-
-        const list: IPeopleResult[] = (
-          (response.value ?? []) as IGraphUser[]
-        ).map((u) => ({
-          id: u.id,
-          displayName: u.displayName ?? "",
-          email: u.mail ?? u.userPrincipalName ?? "",
-          jobTitle: u.jobTitle ?? "",
-          department: u.department ?? "",
-          photoUrl: "",
-        }));
-        setResults(list);
-        setOpen(list.length > 0);
-
-        // Photos are best-effort and load after the names are already on screen.
-        list.forEach((person, idx) => {
-          client
-            .api(`/users/${person.id}/photo/$value`)
-            .get()
-            .then((blob: Blob) => blobToDataUrl(blob))
-            .then((url: string) =>
-              setResults((prev) =>
-                prev.map((p, i) =>
-                  i === idx && p.id === person.id ? { ...p, photoUrl: url } : p,
-                ),
-              ),
-            )
-            .catch(() => undefined);
-        });
-      } catch {
-        setResults([]);
-        setOpen(false);
-      } finally {
-        setSearching(false);
-      }
-    },
-    [spfxContext],
-  );
+  const search = React.useCallback(async (query: string): Promise<void> => {
+    const term = query.trim().slice(0, 80);
+    const requestId = ++requestRef.current;
+    setError("");
+    if (term.length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+    setSearching(true);
+    try {
+      const list = await PeopleService.search(term);
+      if (requestRef.current !== requestId) return;
+      setResults(list);
+      setOpen(true);
+    } catch (e) {
+      if (requestRef.current !== requestId) return;
+      setResults([]);
+      setOpen(true);
+      setError(
+        (e as Error)?.message
+          ? `Falha na busca: ${(e as Error).message}`
+          : "Falha ao buscar pessoas no diretório.",
+      );
+    } finally {
+      if (requestRef.current === requestId) setSearching(false);
+    }
+  }, []);
 
   const handleChange = (next: string): void => {
     onQueryChange(next);
@@ -159,7 +75,10 @@ export const PeoplePicker: React.FC<IPeoplePickerProps> = ({
       }
     };
     document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   return (
@@ -169,14 +88,21 @@ export const PeoplePicker: React.FC<IPeoplePickerProps> = ({
         value={value}
         placeholder={placeholder}
         autoComplete="off"
+        onFocus={() => {
+          if (results.length > 0 || error) setOpen(true);
+        }}
         onChange={(e) => handleChange(e.currentTarget.value)}
       />
       {searching && <span className={styles.spinner}>Buscando...</span>}
-      {open && results.length > 0 && (
+      {open && (
         <div className={styles.dropdown}>
+          {error && <div className={styles.message}>{error}</div>}
+          {!error && !searching && results.length === 0 && (
+            <div className={styles.message}>Nenhuma pessoa encontrada.</div>
+          )}
           {results.map((p) => (
             <button
-              key={p.id}
+              key={p.loginName || p.email}
               type="button"
               className={styles.item}
               onClick={() => {
@@ -185,20 +111,13 @@ export const PeoplePicker: React.FC<IPeoplePickerProps> = ({
                 setResults([]);
               }}
             >
-              {p.photoUrl ? (
-                <img
-                  className={styles.itemAvatar}
-                  src={p.photoUrl}
-                  alt={p.displayName}
-                />
-              ) : (
-                <div
-                  className={styles.itemAvatar}
-                  style={{ background: getAvatarColor(p.displayName) }}
-                >
-                  {getInitials(p.displayName)}
-                </div>
-              )}
+              <UserAvatar
+                name={p.displayName}
+                email={p.email}
+                size={32}
+                photoSize="S"
+                className={styles.itemAvatar}
+              />
               <div className={styles.itemInfo}>
                 <span className={styles.itemName}>{p.displayName}</span>
                 <span className={styles.itemDetail}>{p.email}</span>
