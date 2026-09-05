@@ -3,76 +3,106 @@ import { Input, Button, Field, Textarea } from "@fluentui/react-components";
 import {
   Save20Regular,
   ArrowDownload20Regular,
-  CheckmarkCircle20Regular,
+  ArrowSync20Regular,
 } from "@fluentui/react-icons";
-import { IBudget, IFabricationRequest } from "../../models";
+import {
+  IFabricationBudget,
+  IFabricationRequest,
+  ISubItem,
+} from "../../models";
 import { BudgetService } from "../../services/BudgetService";
-import { useUpdateBudget, useUpdateStatus } from "../../api/fids";
+import { useUpdateFabricationBudget } from "../../api/fids";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { ensureBudgetSeeded } from "../../utils/requestFactory";
+import { delineationToBudget } from "../../utils/delineationToBudget";
 import { exportBudgetExcel } from "../../utils/exportBudgetExcel";
 import { formatCurrencyBRL, formatNumber } from "../../utils/formatters";
 import { useUIStore } from "../../stores/useUIStore";
 import GlassCard from "../common/GlassCard";
 import BudgetLinesTable from "./BudgetLinesTable";
-import BudgetCotsTable from "./BudgetCotsTable";
-import styles from "./BudgetMask.module.scss";
+import styles from "./FabricationBudgetMask.module.scss";
 
-export interface IBudgetMaskProps {
+export interface IFabricationBudgetMaskProps {
   fid: string;
   data: IFabricationRequest;
+  subItem: ISubItem;
+  readOnly?: boolean;
 }
 
 const peso = (v: number): string => (v ? formatNumber(v, 6) : "—");
 
-export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
+export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
+  fid,
+  data,
+  subItem,
+  readOnly,
+}) => {
   const user = useCurrentUser();
   const addToast = useUIStore((s) => s.addToast);
-  const updateBudget = useUpdateBudget(fid);
-  const updateStatus = useUpdateStatus(fid);
+  const updateBudget = useUpdateFabricationBudget(fid);
 
-  const [budget, setBudget] = React.useState<IBudget>(() =>
-    BudgetService.recalcBudget(ensureBudgetSeeded(data.budget)),
+  const [budget, setBudget] = React.useState<IFabricationBudget>(() =>
+    BudgetService.recalcFabricationBudget(
+      subItem.fabricationBudget ?? delineationToBudget(data, subItem),
+    ),
   );
   const [dirty, setDirty] = React.useState(false);
   const [exporting, setExporting] = React.useState(false);
-  const savedRef = React.useRef(data.budget);
+  const savedRef = React.useRef(subItem.fabricationBudget);
 
   React.useEffect(() => {
-    if (savedRef.current !== data.budget && !dirty) {
-      setBudget(BudgetService.recalcBudget(ensureBudgetSeeded(data.budget)));
-      savedRef.current = data.budget;
+    if (savedRef.current !== subItem.fabricationBudget && !dirty) {
+      setBudget(
+        BudgetService.recalcFabricationBudget(
+          subItem.fabricationBudget ?? delineationToBudget(data, subItem),
+        ),
+      );
+      savedRef.current = subItem.fabricationBudget;
     }
-  }, [data.budget, dirty]);
+  }, [subItem.fabricationBudget, data, subItem, dirty]);
 
-  const editTables = (patch: Partial<IBudget>): void => {
-    setBudget((b) => BudgetService.recalcBudget({ ...b, ...patch }));
+  const editTables = (patch: Partial<IFabricationBudget>): void => {
+    setBudget((b) => BudgetService.recalcFabricationBudget({ ...b, ...patch }));
     setDirty(true);
   };
-  const editHeader = (patch: Partial<IBudget>): void => {
+  const editHeader = (patch: Partial<IFabricationBudget>): void => {
     setBudget((b) => ({ ...b, ...patch }));
     setDirty(true);
   };
 
   const onSave = (): void =>
     updateBudget.mutate(
-      { budget, by: user.displayName },
+      { subItemId: subItem.id, budget, by: user.displayName },
       {
         onSuccess: () => {
           setDirty(false);
-          savedRef.current = data.budget;
           addToast("Orçamento salvo.", "success");
         },
         onError: () => addToast("Falha ao salvar o orçamento.", "error"),
       },
     );
 
+  const onRefill = (): void => {
+    const refreshed = delineationToBudget(data, subItem);
+    setBudget(
+      BudgetService.recalcFabricationBudget({
+        ...refreshed,
+        numeroOrcamento: budget.numeroOrcamento,
+        contrato: budget.contrato,
+        dataEnvio: budget.dataEnvio,
+        entregaDiasCorridos: budget.entregaDiasCorridos,
+        observacoes: budget.observacoes,
+      }),
+    );
+    setDirty(true);
+    addToast("Recarregado a partir do delineamento.", "info");
+  };
+
   const onExport = async (): Promise<void> => {
     setExporting(true);
     try {
-      await exportBudgetExcel({
-        ...data,
-        budget: BudgetService.recalcBudget(budget),
+      await exportBudgetExcel(data, {
+        ...subItem,
+        fabricationBudget: BudgetService.recalcFabricationBudget(budget),
       });
     } catch {
       addToast("Falha ao gerar o Excel.", "error");
@@ -81,23 +111,11 @@ export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
     }
   };
 
-  const canConsolidate =
-    data.status === "Budgeting" && !dirty && budget.totalValor > 0;
-  const onConsolidate = (): void =>
-    updateStatus.mutate(
-      {
-        to: "BudgetReview",
-        by: user.displayName,
-        message: "Orçamento consolidado para revisão.",
-      },
-      {
-        onSuccess: () => addToast("Enviado para revisão.", "success"),
-      },
-    );
-
   const pesoT2 = BudgetService.pesoTotalTable2(budget);
   const pesoT1 = BudgetService.pesoTotalTable1(budget);
-  const drawing = `${data.drawing.code} ${data.drawing.revision}`.trim();
+  const drawing =
+    `${subItem.drawing.code} ${subItem.drawing.revision}`.trim() ||
+    `${data.drawing.code} ${data.drawing.revision}`.trim();
 
   return (
     <div className={styles.mask}>
@@ -116,20 +134,16 @@ export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
           >
             Baixar Excel
           </Button>
-          {data.status === "Budgeting" && (
-            <Button
-              icon={<CheckmarkCircle20Regular />}
-              onClick={onConsolidate}
-              disabled={!canConsolidate}
-            >
-              Consolidar
+          {!readOnly && (
+            <Button icon={<ArrowSync20Regular />} onClick={onRefill}>
+              Recarregar do delineamento
             </Button>
           )}
           <Button
             appearance="primary"
             icon={<Save20Regular />}
             onClick={onSave}
-            disabled={!dirty || updateBudget.isLoading}
+            disabled={readOnly || !dirty || updateBudget.isLoading}
           >
             Salvar
           </Button>
@@ -150,8 +164,8 @@ export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
           <Field label="OS">
             <Input value={data.osNumber} disabled />
           </Field>
-          <Field label="Projeto">
-            <Input value={data.projeto} disabled />
+          <Field label="Item">
+            <Input value={`${subItem.pn} — ${subItem.descricao}`} disabled />
           </Field>
           <Field label="Desenho">
             <Input value={drawing} disabled />
@@ -222,16 +236,6 @@ export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
         />
       </GlassCard>
 
-      <GlassCard
-        title="Aquisição de partes e peças (COTS) — Tabela 3"
-        noBodyPadding
-      >
-        <BudgetCotsTable
-          lines={budget.tabela3}
-          onChange={(l) => editTables({ tabela3: l })}
-        />
-      </GlassCard>
-
       <GlassCard title="Valor Final">
         <div className={styles.finalTable}>
           <div className={styles.finalHead}>
@@ -248,11 +252,6 @@ export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
             <span>Tabela 1 (serviços adicionais)</span>
             <span>{peso(pesoT1)}</span>
             <span>{formatCurrencyBRL(BudgetService.valorTable1(budget))}</span>
-          </div>
-          <div className={styles.finalRow}>
-            <span>Tabela 3 (COTS)</span>
-            <span>—</span>
-            <span>{formatCurrencyBRL(BudgetService.valorTable3(budget))}</span>
           </div>
           <div className={styles.finalTotal}>
             <span>Total</span>
@@ -274,4 +273,4 @@ export const BudgetMask: React.FC<IBudgetMaskProps> = ({ fid, data }) => {
   );
 };
 
-export default BudgetMask;
+export default FabricationBudgetMask;

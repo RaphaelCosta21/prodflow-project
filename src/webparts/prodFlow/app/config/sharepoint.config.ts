@@ -7,7 +7,13 @@ export const SP_CONFIG = {
     notifications: "prodflow-notifications",
   },
   libraries: {
-    attachments: "ProdFlow",
+    attachments: "ProdFlow-docs",
+  },
+  // Promoted columns on the ProdFlow-docs library so files stay queryable outside the FID JSON.
+  libraryFields: {
+    fid: "ProdFlowFID",
+    docType: "ProdFlowDocType",
+    refCode: "ProdFlowRefCode",
   },
   // Promoted columns on prodflow-requests (query without parsing the whole JSON) + the JSON blob.
   fields: {

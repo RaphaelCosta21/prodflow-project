@@ -20,6 +20,7 @@ export type AccessPermission = "none" | "view" | "edit";
 export interface IAppConfig {
   slaMatrix: ISlaMatrix;
   holidays: string[]; // ISO dates (YYYY-MM-DD)
+  budgetTypes: string[]; // opções de "Tipo de Orçamento" (as fixas sempre entram)
   statusColors: { [status: string]: string };
   teamColors: { [team: string]: string };
   defaultTheme: "light" | "dark";

@@ -6,6 +6,10 @@ import {
   Strategy,
   SubItemStatus,
 } from "./enums";
+import { TeamKey } from "../config/teams";
+import { IAttachmentRef } from "./attachment";
+import { IFabricationBudget } from "./budget";
+import { ISubItemStatusHistoryEntry } from "./history";
 
 export interface IDrawing {
   code: string;
@@ -27,20 +31,38 @@ export interface IDelineationRevision {
   note?: string;
 }
 
+// One raw-material line of a delineation; materialKey joins CONTRACT_MATERIALS.
+export interface IDelineationMaterial {
+  materialKey: string;
+  categoria: string;
+  descricao: string;
+  kg: number;
+}
+
 // Make/In-House fabrication document (Eng. Industrial) with revision control + PDF/Word export.
 export interface IDelineation {
-  hh: number;
+  hh: number; // derived: usinagem + acabamento + montagem + inspeção
+  horasUsinagem: number;
+  horasAcabamento: number;
+  horasMontagem: number;
+  inspecaoDimensional: boolean;
+  horasInspecao: number;
+  materials: IDelineationMaterial[];
   eps?: string;
   inspections?: string[];
   consumables?: string;
-  rawMaterial?: string;
+  rawMaterial?: string; // legado (texto livre) — substituído por `materials`
   notes?: string;
   revision: string;
   revisionHistory?: IDelineationRevision[];
   printableUrl?: string;
+  concluido?: boolean;
+  concluidoPor?: string;
+  concluidoEm?: string;
   checklist: IChecklistStep[];
 }
 
+// Legado: resolvido a partir do pacote de cotação vencedor (ver models/quotation.ts).
 export interface IQuotation {
   supplier: string;
   value: number;
@@ -81,8 +103,20 @@ export interface ISubItem {
   attendance: Attendance;
   complexity: Complexity;
   status: SubItemStatus;
+  statusHistory?: ISubItemStatusHistoryEntry[];
   delineation?: IDelineation;
   quotation?: IQuotation;
+  // Desenhos do sub-item (BR/OII) anexados pelo Planejamento na definição da estratégia.
+  drawings?: IAttachmentRef[];
+  // Roteamento disparado pelo Planejamento ("Iniciar")
+  startedAt?: string;
+  startedBy?: string;
+  ownerTeam?: TeamKey;
+  naReason?: string;
+  // Pacote de cotação eleito vencedor para este sub-item
+  selectedQuotationId?: string;
+  // Máscara do Relatório de Orçamento de Fabricação (1 por sub-item Make)
+  fabricationBudget?: IFabricationBudget;
   // Phase 2 — PeopleSoft references (manual)
   rcOrSr?: string;
   poOrWo?: string;

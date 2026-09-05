@@ -15,7 +15,6 @@ const budget = (over: Partial<IBudget> = {}): IBudget => ({
   tabela1: [],
   tabela2Materiais: [],
   tabela2Labor: [],
-  tabela3: [],
   totalValor: 0,
   ...over,
 });
@@ -53,24 +52,23 @@ describe("BudgetService", () => {
     );
   });
 
-  it("adds COTS as a direct value", () => {
+  it("totals only tables 1 and 2 — partes e peças saem em relatório próprio", () => {
     const b = budget({
-      tabela3: [{ categoria: "Sensor", valor: 1500 }],
+      tabela2Materiais: [line(1, 1)],
+      tabela1: [line(1, 1)],
     });
-    expect(BudgetService.valorTable3(b)).toBe(1500);
-    expect(BudgetService.computeTotal(b)).toBe(1500);
+    expect(BudgetService.computeTotal(b)).toBe(
+      CONTRACT_WEIGHTS.unitPriceTable2BRL + CONTRACT_WEIGHTS.unitPriceTable1BRL,
+    );
   });
 
   it("recalculates every line and the grand total", () => {
     const b = budget({
       tabela2Materiais: [line(2, 0.5)],
-      tabela3: [{ categoria: "COTS", valor: 100 }],
     });
     const result = BudgetService.recalcBudget(b);
     expect(result.tabela2Materiais[0].pesoTotal).toBe(1);
-    expect(result.totalValor).toBe(
-      1 * CONTRACT_WEIGHTS.unitPriceTable2BRL + 100,
-    );
+    expect(result.totalValor).toBe(1 * CONTRACT_WEIGHTS.unitPriceTable2BRL);
   });
 
   it("reproduces the reference budget from the official template", () => {

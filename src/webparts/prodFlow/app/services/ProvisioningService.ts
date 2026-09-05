@@ -19,6 +19,7 @@ export class ProvisioningService {
     await ProvisioningService.ensureRequests(created, existing);
     await ProvisioningService.ensureConfig(created, existing);
     await ProvisioningService.ensureNotifications(created, existing);
+    await ProvisioningService.ensureLibrary(existing);
     return { created, existing };
   }
 
@@ -88,6 +89,25 @@ export class ProvisioningService {
     await ProvisioningService.ensureNote(list, "Recipients");
     await ProvisioningService.ensureNote(list, "Payload");
     await ProvisioningService.ensureText(list, "Status");
+  }
+
+  // Never created here: `lists.ensure` matches by title, so a typo would silently create a second
+  // library instead of reusing the existing one.
+  private static async ensureLibrary(existing: string[]): Promise<void> {
+    const lf = SP_CONFIG.libraryFields;
+    const title = SP_CONFIG.libraries.attachments;
+    const list = SPService.sp.web.lists.getByTitle(title);
+    try {
+      await list.select("Title")();
+    } catch {
+      throw new Error(
+        `Biblioteca "${title}" não encontrada no site. Confirme o título exato em SP_CONFIG.libraries.attachments antes de provisionar.`,
+      );
+    }
+    existing.push(title);
+    await ProvisioningService.ensureText(list, lf.fid);
+    await ProvisioningService.ensureText(list, lf.docType);
+    await ProvisioningService.ensureText(list, lf.refCode);
   }
 
   private static async ensureText(list: IList, name: string): Promise<void> {

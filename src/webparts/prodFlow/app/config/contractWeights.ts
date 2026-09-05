@@ -424,3 +424,34 @@ export const CONTRACT_WEIGHTS = {
   labor: CONTRACT_LABOR,
   services: CONTRACT_SERVICES,
 } as const;
+
+export function materialByKey(key: string): IContractMaterialRow | undefined {
+  return CONTRACT_MATERIALS.filter((m) => m.key === key)[0];
+}
+
+export function laborRow(
+  servico: string,
+  complexidade?: Complexity,
+): IContractLaborRow | undefined {
+  return CONTRACT_LABOR.filter(
+    (l) =>
+      l.servico === servico &&
+      (complexidade === undefined || l.complexidade === complexidade),
+  )[0];
+}
+
+export interface IMaterialOption {
+  key: string;
+  label: string;
+  categoria: string;
+  descricao: string;
+}
+
+// Dropdown source for the Eng. Industrial delineation (raw material always in KG).
+export const CONTRACT_MATERIAL_OPTIONS: IMaterialOption[] =
+  CONTRACT_MATERIALS.map((m) => ({
+    key: m.key,
+    label: `${m.categoria} · ${m.descricao}`,
+    categoria: m.categoria,
+    descricao: m.descricao,
+  }));

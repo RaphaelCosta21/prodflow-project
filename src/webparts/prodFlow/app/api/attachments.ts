@@ -3,7 +3,11 @@ import {
   useQueryClient,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { IAttachmentRef, IFabricationRequest } from "../models";
+import {
+  AttachmentCategory,
+  IAttachmentRef,
+  IFabricationRequest,
+} from "../models";
 import { AttachmentService } from "../services/AttachmentService";
 import { RequestService } from "../services/RequestService";
 import { queryKeys } from "./queryKeys";
@@ -12,6 +16,23 @@ interface IUploadVars {
   fid: string;
   file: File;
   by: string;
+}
+
+export interface IPendingAttachment {
+  file: File;
+  category: AttachmentCategory;
+  refCode?: string;
+}
+
+interface IUploadManyVars {
+  fid: string;
+  items: IPendingAttachment[];
+  by: string;
+}
+
+export interface IUploadManyResult {
+  uploaded: IAttachmentRef[];
+  failed: string[];
 }
 
 interface IRemoveVars {
@@ -40,6 +61,54 @@ export function useUploadAttachment(): UseMutationResult<
           message: `Anexo adicionado: ${ref.name}`,
         });
       });
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: queryKeys.fid(vars.fid) }),
+  });
+}
+
+// Batch upload used right after a FID is created: one ETag write for every file, and a partial
+// failure keeps the files that did upload instead of losing the whole batch.
+export function useUploadAttachments(): UseMutationResult<
+  IUploadManyResult,
+  unknown,
+  IUploadManyVars
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: IUploadManyVars) => {
+      const uploaded: IAttachmentRef[] = [];
+      const failed: string[] = [];
+      for (const item of vars.items) {
+        try {
+          uploaded.push(
+            await AttachmentService.upload(vars.fid, item.file, {
+              category: item.category,
+              refCode: item.refCode,
+            }),
+          );
+        } catch {
+          failed.push(item.file.name);
+        }
+      }
+      if (uploaded.length > 0) {
+        await RequestService.updateSection(vars.fid, (draft) => {
+          for (const ref of uploaded) {
+            if (!draft.attachments.some((a) => a.url === ref.url)) {
+              draft.attachments.push(ref);
+            }
+          }
+          draft.history.push({
+            ts: new Date().toISOString(),
+            by: vars.by,
+            type: "attachment-added",
+            message: `Anexos adicionados: ${uploaded
+              .map((r) => r.name)
+              .join(", ")}`,
+          });
+        });
+      }
+      return { uploaded, failed };
     },
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: queryKeys.fid(vars.fid) }),

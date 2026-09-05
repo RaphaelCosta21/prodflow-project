@@ -1,5 +1,5 @@
 import type { Workbook } from "exceljs";
-import { IBudgetLine, IFabricationRequest } from "../models";
+import { IBudgetLine, IFabricationRequest, ISubItem } from "../models";
 import {
   CONTRACT_LABOR,
   CONTRACT_MATERIALS,
@@ -35,10 +35,12 @@ function triggerDownload(buffer: ArrayBuffer, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-// Fills ONLY the per-FID header + QTD/HH inputs + COTS rows into the immutable template, then lets
-// Excel recompute every formula on open (fullCalcOnLoad). exceljs does not evaluate formulas itself.
+// Fills ONLY the per-FID header + QTD/HH inputs into the immutable template, then lets Excel
+// recompute every formula on open (fullCalcOnLoad). exceljs does not evaluate formulas itself.
+// One report per Make sub-item: pass the sub-item to stamp its PN in the header.
 export async function exportBudgetExcel(
   request: IFabricationRequest,
+  subItem?: ISubItem,
 ): Promise<void> {
   const [{ Workbook }, { BUDGET_TEMPLATE_BASE64 }] = await Promise.all([
     import(/* webpackChunkName: 'exceljs' */ "exceljs"),
@@ -50,13 +52,17 @@ export async function exportBudgetExcel(
   const workbook: Workbook = new Workbook();
   await workbook.xlsx.load(base64ToBytes(BUDGET_TEMPLATE_BASE64).buffer);
   const ws = workbook.worksheets[0];
-  const { budget } = request;
+  const budget = subItem?.fabricationBudget ?? request.budget;
 
   // Header (per-FID values).
   ws.getCell(BUDGET_TEMPLATE.header.os).value = request.osNumber;
-  ws.getCell(BUDGET_TEMPLATE.header.projeto).value = request.projeto;
-  ws.getCell(BUDGET_TEMPLATE.header.desenho).value =
-    `${request.drawing.code} ${request.drawing.revision}`.trim();
+  ws.getCell(BUDGET_TEMPLATE.header.projeto).value = subItem
+    ? `${request.projeto} — ${subItem.pn} ${subItem.descricao}`.trim()
+    : request.projeto;
+  ws.getCell(BUDGET_TEMPLATE.header.desenho).value = subItem
+    ? `${subItem.drawing.code} ${subItem.drawing.revision}`.trim() ||
+      `${request.drawing.code} ${request.drawing.revision}`.trim()
+    : `${request.drawing.code} ${request.drawing.revision}`.trim();
   ws.getCell(BUDGET_TEMPLATE.header.numeroOrcamento).value =
     budget.numeroOrcamento;
   if (budget.dataEnvio)
@@ -83,23 +89,16 @@ export async function exportBudgetExcel(
       ws.getCell(`${BUDGET_TEMPLATE.servicos.qtdCol}${s.row}`).value = qtd;
   }
 
-  // Tabela 3 (COTS) — free-form rows.
-  const cots = BUDGET_TEMPLATE.cots;
-  budget.tabela3
-    .slice(0, cots.endRow - cots.startRow + 1)
-    .forEach((line, i) => {
-      const row = cots.startRow + i;
-      ws.getCell(`${cots.categoriaCol}${row}`).value = line.categoria;
-      if (line.valor) ws.getCell(`${cots.valorCol}${row}`).value = line.valor;
-      if (line.obs) ws.getCell(`${cots.obsCol}${row}`).value = line.obs;
-    });
+  // Tabela 3 migrou para o Relatório de Partes e Peças.
+  for (const row of BUDGET_TEMPLATE.hiddenRows) ws.getRow(row).hidden = true;
 
   // Force Excel to recompute peso totals / totals / valores on open.
   workbook.calcProperties.fullCalcOnLoad = true;
 
   const out = await workbook.xlsx.writeBuffer();
+  const suffix = subItem ? ` - ${subItem.pn}` : "";
   triggerDownload(
     out as ArrayBuffer,
-    `Relatório de Orçamento ${request.fid}.xlsx`,
+    `Relatório de Orçamento de Fabricação ${request.fid}${suffix}.xlsx`,
   );
 }

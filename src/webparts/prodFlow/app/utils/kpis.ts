@@ -118,6 +118,7 @@ export function makeBuyMix(requests: IFabricationRequest[]): {
     buyCommercial: 0,
     makeInHouse: 0,
     makeSubcon: 0,
+    na: 0,
   };
   for (const r of requests) {
     for (const s of leavesOf(r.subItems)) {

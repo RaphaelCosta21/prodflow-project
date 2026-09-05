@@ -2,6 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogSurface,
   Dropdown,
@@ -22,6 +23,16 @@ import { Attendance, Complexity } from "../../models";
 import { useSpfxContext } from "../../config/SpfxContext";
 import { useUIStore } from "../../stores/useUIStore";
 import { useCreateFid } from "../../api/fids";
+import { useAppConfig } from "../../api/config";
+import {
+  PARTS_BUDGET_TYPE,
+  budgetTypeOptions,
+} from "../../config/appConfigDefaults";
+import {
+  IPendingAttachment,
+  useUploadAttachments,
+} from "../../api/attachments";
+import FileDropzone from "../common/FileDropzone";
 import { SlaService } from "../../services/SlaService";
 import { validateNewRequest } from "../../schemas/fabricationRequest.schema";
 import { buildNewRequest, INewRequestInput } from "../../utils/requestFactory";
@@ -37,7 +48,7 @@ const COMPLEXITIES: Complexity[] = [
   "A definir",
 ];
 const ATTENDANCES: Attendance[] = ["Interna", "Externa"];
-const OS_TYPES: Array<"OS" | "OM"> = ["OS", "OM"];
+const OS_PREFIX = "6000";
 
 interface IStep {
   title: string;
@@ -48,21 +59,13 @@ interface IStep {
 const STEPS: IStep[] = [
   {
     title: "Identificação",
-    hint: "Ordem de serviço e desenho de referência",
-    fields: [
-      "osNumber",
-      "osType",
-      "projeto",
-      "lote",
-      "drawingCode",
-      "drawingRevision",
-    ],
+    hint: "Ordem de serviço, desenho de referência e escopo",
+    fields: ["osNumber", "drawingCode", "partNumberOii", "descricao"],
   },
   {
     title: "Escopo & Complexidade",
     hint: "O que será fabricado e o esforço envolvido",
     fields: [
-      "descricao",
       "tipoOrcamento",
       "complexidadeUsinagem",
       "complexidadeCaldeiraria",
@@ -75,7 +78,7 @@ const STEPS: IStep[] = [
     fields: ["solicitacaoOrcamento", "prazoDiasCorridos", "comentarios"],
   },
   {
-    title: "Revisão",
+    title: "Conferência",
     hint: "Confira os dados antes de criar o FID",
     fields: [],
   },
@@ -85,12 +88,9 @@ const LAST_STEP = STEPS.length - 1;
 
 function initialForm(user: string): INewRequestInput {
   return {
-    osNumber: "",
-    osType: "OS",
-    projeto: "CIDEQ",
-    lote: "",
+    osNumber: OS_PREFIX,
     drawingCode: "",
-    drawingRevision: "",
+    partNumberOii: "",
     descricao: "",
     comentarios: "",
     tipoOrcamento: "Fabricação",
@@ -134,16 +134,29 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
   const navigate = useNavigate();
   const addToast = useUIStore((s) => s.addToast);
   const createFid = useCreateFid();
+  const uploadAttachments = useUploadAttachments();
+  const { data: appConfig } = useAppConfig();
+  const budgetTypes = budgetTypeOptions(appConfig?.budgetTypes);
 
   const [step, setStep] = React.useState(0);
   const [form, setForm] = React.useState<INewRequestInput>(() =>
     initialForm(user),
   );
+  const [hasOii, setHasOii] = React.useState(false);
+  const [crdFiles, setCrdFiles] = React.useState<File[]>([]);
+  const [oiiFiles, setOiiFiles] = React.useState<File[]>([]);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const busy = createFid.isLoading || uploadAttachments.isLoading;
+  // "Partes e Peças" has no complexity and no budget SLA — Oceaneering sets its own deadline.
+  const isParts = form.tipoOrcamento === PARTS_BUDGET_TYPE;
 
   React.useEffect(() => {
     if (!open) return;
     setForm(initialForm(user));
+    setHasOii(false);
+    setCrdFiles([]);
+    setOiiFiles([]);
     setStep(0);
     setErrors({});
   }, [open, user]);
@@ -161,6 +174,20 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
     });
   };
 
+  const setBudgetType = (value: string): void => {
+    setForm((f) =>
+      value === PARTS_BUDGET_TYPE
+        ? {
+            ...f,
+            tipoOrcamento: value,
+            atendimento: "Externa",
+            complexidadeUsinagem: "N/A",
+            complexidadeCaldeiraria: "N/A",
+          }
+        : { ...f, tipoOrcamento: value },
+    );
+  };
+
   const complexidadeGeral = SlaService.complexidadeGeral(
     form.complexidadeUsinagem,
     form.complexidadeCaldeiraria,
@@ -169,19 +196,26 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
     complexidadeGeral,
     form.atendimento,
   );
-  const prazoEnvio = form.solicitacaoOrcamento
-    ? SlaService.prazoEnvio(
-        new Date(form.solicitacaoOrcamento),
-        complexidadeGeral,
-        form.atendimento,
-      ).toISOString()
-    : undefined;
+  const prazoEnvio =
+    form.solicitacaoOrcamento && prazoDiasUteis > 0
+      ? SlaService.prazoEnvio(
+          new Date(form.solicitacaoOrcamento),
+          complexidadeGeral,
+          form.atendimento,
+        ).toISOString()
+      : undefined;
+
+  // The OII part number is optional, but required once the user says the FID has one.
+  const oiiError = (): Record<string, string> =>
+    hasOii && !form.partNumberOii?.trim()
+      ? { partNumberOii: "Informe o Part Number OII." }
+      : {};
 
   const validateStep = (index: number): boolean => {
-    const stepErrors = validateNewRequest(
-      form,
-      STEPS[index].fields as string[],
-    );
+    const stepErrors = {
+      ...validateNewRequest(form, STEPS[index].fields as string[]),
+      ...(STEPS[index].fields.indexOf("partNumberOii") >= 0 ? oiiError() : {}),
+    };
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
@@ -206,8 +240,58 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
     setStep(target);
   };
 
+  // The FID number only exists after creation, so the picked files are uploaded here.
+  const finishWithAttachments = (fid: string): void => {
+    const items: IPendingAttachment[] = [
+      ...crdFiles.map((file) => ({
+        file,
+        category: "CRD" as const,
+        refCode: form.drawingCode,
+      })),
+      ...oiiFiles.map((file) => ({
+        file,
+        category: "OII" as const,
+        refCode: form.partNumberOii,
+      })),
+    ];
+    const done = (): void => {
+      onOpenChange(false);
+      navigate(fidDetailPath(fid));
+    };
+    if (items.length === 0) {
+      done();
+      return;
+    }
+    uploadAttachments.mutate(
+      { fid, items, by: user },
+      {
+        onSuccess: (result) => {
+          if (result.failed.length > 0) {
+            addToast(
+              `Anexos não enviados: ${result.failed.join(", ")}. Reenvie na aba Documentos.`,
+              "warning",
+            );
+          } else {
+            addToast(
+              `${result.uploaded.length} anexo(s) enviado(s).`,
+              "success",
+            );
+          }
+          done();
+        },
+        onError: (e) => {
+          addToast(
+            `FID criado, mas os anexos falharam: ${String(e)}`,
+            "warning",
+          );
+          done();
+        },
+      },
+    );
+  };
+
   const onSubmit = (): void => {
-    const allErrors = validateNewRequest(form);
+    const allErrors = { ...validateNewRequest(form), ...oiiError() };
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
       const firstBroken = STEPS.findIndex((s) =>
@@ -219,8 +303,7 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
     createFid.mutate(buildNewRequest(form), {
       onSuccess: (created) => {
         addToast(`FID ${created.fid} criado.`, "success");
-        onOpenChange(false);
-        navigate(fidDetailPath(created.fid));
+        finishWithAttachments(created.fid);
       },
       onError: (e) => addToast(`Erro ao criar FID: ${String(e)}`, "error"),
     });
@@ -262,7 +345,7 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
               type="button"
               className={styles.closeBtn}
               onClick={() => onOpenChange(false)}
-              disabled={createFid.isLoading}
+              disabled={busy}
               aria-label="Fechar"
             >
               <Dismiss24Regular />
@@ -301,40 +384,31 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
           <div className={styles.body}>
             {step === 0 && (
               <div className={styles.grid}>
-                <Field label="OS / OM" required {...fieldProps("osNumber")}>
-                  <Input
-                    value={form.osNumber}
-                    onChange={(_, d) => set("osNumber", d.value)}
-                    placeholder="6000786587"
-                  />
-                </Field>
-                <Field label="Tipo">
-                  <Dropdown
-                    value={form.osType ?? "OS"}
-                    selectedOptions={form.osType ? [form.osType] : []}
-                    onOptionSelect={(_, d) => {
-                      if (d.optionValue)
-                        set("osType", d.optionValue as "OS" | "OM");
-                    }}
-                  >
-                    {OS_TYPES.map((t) => (
-                      <Option key={t} value={t}>
-                        {t}
-                      </Option>
-                    ))}
-                  </Dropdown>
-                </Field>
-                <Field label="Projeto" required {...fieldProps("projeto")}>
-                  <Input
-                    value={form.projeto}
-                    onChange={(_, d) => set("projeto", d.value)}
-                  />
-                </Field>
-                <Field label="Lote">
-                  <Input
-                    value={form.lote ?? ""}
-                    onChange={(_, d) => set("lote", d.value)}
-                  />
+                <Field
+                  label="OS"
+                  required
+                  className={styles.span2}
+                  {...fieldProps("osNumber")}
+                >
+                  <div className={styles.osRow}>
+                    <span className={styles.osPrefix}>{OS_PREFIX}</span>
+                    <Input
+                      className={styles.osInput}
+                      value={
+                        form.osNumber.startsWith(OS_PREFIX)
+                          ? form.osNumber.slice(OS_PREFIX.length)
+                          : form.osNumber
+                      }
+                      inputMode="numeric"
+                      onChange={(_, d) => {
+                        const suffix = d.value
+                          .replace(/\D/g, "")
+                          .replace(/^6000/, "");
+                        set("osNumber", `${OS_PREFIX}${suffix}`);
+                      }}
+                      placeholder="786587"
+                    />
+                  </div>
                 </Field>
                 <Field
                   label="Desenho (CRD)"
@@ -348,18 +422,59 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                     placeholder="DE-3000.00-1521-600-PEH-1321_D01"
                   />
                 </Field>
-                <Field label="Revisão">
-                  <Input
-                    value={form.drawingRevision ?? ""}
-                    onChange={(_, d) => set("drawingRevision", d.value)}
-                    placeholder="D01"
+                <div className={styles.span2}>
+                  <FileDropzone
+                    inputId="crd-files"
+                    ariaLabel="Anexos do desenho (CRD)"
+                    files={crdFiles}
+                    onFilesChange={setCrdFiles}
+                    onReject={(m) => addToast(m, "warning")}
+                    disabled={busy}
                   />
-                </Field>
-              </div>
-            )}
+                </div>
 
-            {step === 1 && (
-              <div className={styles.grid}>
+                <div className={styles.span2}>
+                  <Checkbox
+                    checked={hasOii}
+                    disabled={busy}
+                    label="Incluir Part Number OII"
+                    onChange={(_, d) => {
+                      const checked = Boolean(d.checked);
+                      setHasOii(checked);
+                      if (!checked) {
+                        set("partNumberOii", "");
+                        setOiiFiles([]);
+                      }
+                    }}
+                  />
+                </div>
+                {hasOii && (
+                  <>
+                    <Field
+                      label="Part Number OII"
+                      required
+                      className={styles.span2}
+                      {...fieldProps("partNumberOii")}
+                    >
+                      <Input
+                        value={form.partNumberOii ?? ""}
+                        onChange={(_, d) => set("partNumberOii", d.value)}
+                        placeholder="0662354"
+                      />
+                    </Field>
+                    <div className={styles.span2}>
+                      <FileDropzone
+                        inputId="oii-files"
+                        ariaLabel="Anexos do Part Number OII"
+                        files={oiiFiles}
+                        onFilesChange={setOiiFiles}
+                        onReject={(m) => addToast(m, "warning")}
+                        disabled={busy}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <Field
                   label="Descrição Resumida"
                   required
@@ -373,90 +488,126 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                     resize="vertical"
                   />
                 </Field>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className={styles.grid}>
                 <Field
                   label="Tipo de Orçamento"
                   required
                   {...fieldProps("tipoOrcamento")}
                 >
-                  <Input
+                  <Dropdown
                     value={form.tipoOrcamento}
-                    onChange={(_, d) => set("tipoOrcamento", d.value)}
-                  />
+                    selectedOptions={[form.tipoOrcamento]}
+                    onOptionSelect={(_, d) => {
+                      if (d.optionValue) setBudgetType(d.optionValue);
+                    }}
+                  >
+                    {budgetTypes.map((t) => (
+                      <Option key={t} value={t}>
+                        {t}
+                      </Option>
+                    ))}
+                  </Dropdown>
                 </Field>
                 <Field label="Atendimento (preferência)">
-                  <Dropdown
-                    value={form.atendimento}
-                    selectedOptions={[form.atendimento]}
-                    onOptionSelect={(_, d) => {
-                      if (d.optionValue)
-                        set("atendimento", d.optionValue as Attendance);
-                    }}
-                  >
-                    {ATTENDANCES.map((a) => (
-                      <Option key={a} value={a}>
-                        {a}
-                      </Option>
-                    ))}
-                  </Dropdown>
+                  {isParts ? (
+                    <span className={styles.fixedValue}>Externa</span>
+                  ) : (
+                    <Dropdown
+                      value={form.atendimento}
+                      selectedOptions={[form.atendimento]}
+                      onOptionSelect={(_, d) => {
+                        if (d.optionValue)
+                          set("atendimento", d.optionValue as Attendance);
+                      }}
+                    >
+                      {ATTENDANCES.map((a) => (
+                        <Option key={a} value={a}>
+                          {a}
+                        </Option>
+                      ))}
+                    </Dropdown>
+                  )}
                 </Field>
                 <Field label="Complexidade — Usinagem">
-                  <Dropdown
-                    value={form.complexidadeUsinagem}
-                    selectedOptions={[form.complexidadeUsinagem]}
-                    onOptionSelect={(_, d) => {
-                      if (d.optionValue)
-                        set(
-                          "complexidadeUsinagem",
-                          d.optionValue as Complexity,
-                        );
-                    }}
-                  >
-                    {COMPLEXITIES.map((c) => (
-                      <Option key={c} value={c}>
-                        {c}
-                      </Option>
-                    ))}
-                  </Dropdown>
+                  {isParts ? (
+                    <span className={styles.fixedValue}>N/A</span>
+                  ) : (
+                    <Dropdown
+                      value={form.complexidadeUsinagem}
+                      selectedOptions={[form.complexidadeUsinagem]}
+                      onOptionSelect={(_, d) => {
+                        if (d.optionValue)
+                          set(
+                            "complexidadeUsinagem",
+                            d.optionValue as Complexity,
+                          );
+                      }}
+                    >
+                      {COMPLEXITIES.map((c) => (
+                        <Option key={c} value={c}>
+                          {c}
+                        </Option>
+                      ))}
+                    </Dropdown>
+                  )}
                 </Field>
                 <Field label="Complexidade — Caldeiraria/Soldagem">
-                  <Dropdown
-                    value={form.complexidadeCaldeiraria}
-                    selectedOptions={[form.complexidadeCaldeiraria]}
-                    onOptionSelect={(_, d) => {
-                      if (d.optionValue)
-                        set(
-                          "complexidadeCaldeiraria",
-                          d.optionValue as Complexity,
-                        );
-                    }}
-                  >
-                    {COMPLEXITIES.map((c) => (
-                      <Option key={c} value={c}>
-                        {c}
-                      </Option>
-                    ))}
-                  </Dropdown>
+                  {isParts ? (
+                    <span className={styles.fixedValue}>N/A</span>
+                  ) : (
+                    <Dropdown
+                      value={form.complexidadeCaldeiraria}
+                      selectedOptions={[form.complexidadeCaldeiraria]}
+                      onOptionSelect={(_, d) => {
+                        if (d.optionValue)
+                          set(
+                            "complexidadeCaldeiraria",
+                            d.optionValue as Complexity,
+                          );
+                      }}
+                    >
+                      {COMPLEXITIES.map((c) => (
+                        <Option key={c} value={c}>
+                          {c}
+                        </Option>
+                      ))}
+                    </Dropdown>
+                  )}
                 </Field>
 
                 <div className={`${styles.callout} ${styles.span2}`}>
-                  <span className={styles.calloutItem}>
-                    <span className={styles.calloutLabel}>
-                      Complexidade geral
+                  {isParts ? (
+                    <span className={styles.calloutNote}>
+                      Partes e Peças não têm complexidade nem SLA de resposta —
+                      o prazo é definido pela Oceaneering.
                     </span>
-                    <strong className={styles.calloutValue}>
-                      {complexidadeGeral}
-                    </strong>
-                  </span>
-                  <span className={styles.calloutDivider} />
-                  <span className={styles.calloutItem}>
-                    <span className={styles.calloutLabel}>Prazo SLA</span>
-                    <strong className={styles.calloutValue}>
-                      {prazoDiasUteis} dias úteis
-                    </strong>
-                  </span>
-                  <span className={styles.calloutNote}>
-                    Derivado da maior complexidade entre usinagem e caldeiraria.
-                  </span>
+                  ) : (
+                    <>
+                      <span className={styles.calloutItem}>
+                        <span className={styles.calloutLabel}>
+                          Complexidade geral
+                        </span>
+                        <strong className={styles.calloutValue}>
+                          {complexidadeGeral}
+                        </strong>
+                      </span>
+                      <span className={styles.calloutDivider} />
+                      <span className={styles.calloutItem}>
+                        <span className={styles.calloutLabel}>Prazo SLA</span>
+                        <strong className={styles.calloutValue}>
+                          {prazoDiasUteis} dias úteis
+                        </strong>
+                      </span>
+                      <span className={styles.calloutNote}>
+                        Prazo para envio do orçamento à Petrobras, derivado da
+                        maior complexidade entre usinagem e caldeiraria.
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -493,18 +644,27 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                 </Field>
 
                 <div className={`${styles.callout} ${styles.span2}`}>
-                  <span className={styles.calloutItem}>
-                    <span className={styles.calloutLabel}>
-                      Prazo de envio à Petrobras
+                  {prazoEnvio ? (
+                    <>
+                      <span className={styles.calloutItem}>
+                        <span className={styles.calloutLabel}>
+                          Prazo de envio à Petrobras
+                        </span>
+                        <strong className={styles.calloutValue}>
+                          {formatDate(prazoEnvio)}
+                        </strong>
+                      </span>
+                      <span className={styles.calloutNote}>
+                        {prazoDiasUteis} dias úteis após a solicitação, já
+                        descontando feriados nacionais.
+                      </span>
+                    </>
+                  ) : (
+                    <span className={styles.calloutNote}>
+                      Sem SLA de resposta para este tipo de orçamento — o prazo
+                      de envio é definido pela Oceaneering.
                     </span>
-                    <strong className={styles.calloutValue}>
-                      {formatDate(prazoEnvio)}
-                    </strong>
-                  </span>
-                  <span className={styles.calloutNote}>
-                    {prazoDiasUteis} dias úteis após a solicitação, já
-                    descontando feriados nacionais.
-                  </span>
+                  )}
                 </div>
 
                 <Field label="Comentários" className={styles.span2}>
@@ -522,28 +682,35 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
               <div className={styles.review}>
                 <span className={styles.reviewGroup}>Identificação</span>
                 <div className={styles.reviewGrid}>
+                  <ReviewCell label="OS" value={form.osNumber} />
                   <ReviewCell
-                    label={form.osType ?? "OS"}
-                    value={form.osNumber}
-                  />
-                  <ReviewCell label="Projeto" value={form.projeto} />
-                  <ReviewCell label="Lote" value={form.lote} />
-                  <ReviewCell
-                    label="Revisão do desenho"
-                    value={form.drawingRevision}
+                    label="Part Number OII"
+                    value={hasOii ? form.partNumberOii : "Não possui"}
                   />
                   <ReviewCell
                     label="Desenho (CRD)"
                     value={form.drawingCode}
                     wide
                   />
+                  <ReviewCell label="Descrição" value={form.descricao} wide />
+                  <ReviewCell
+                    label={`Anexos CRD (${crdFiles.length})`}
+                    value={crdFiles.map((f) => f.name).join(", ")}
+                    wide
+                  />
+                  {hasOii && (
+                    <ReviewCell
+                      label={`Anexos OII (${oiiFiles.length})`}
+                      value={oiiFiles.map((f) => f.name).join(", ")}
+                      wide
+                    />
+                  )}
                 </div>
 
                 <span className={styles.reviewGroup}>
                   Escopo &amp; Complexidade
                 </span>
                 <div className={styles.reviewGrid}>
-                  <ReviewCell label="Descrição" value={form.descricao} wide />
                   <ReviewCell
                     label="Tipo de orçamento"
                     value={form.tipoOrcamento}
@@ -563,7 +730,11 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                   />
                   <ReviewCell
                     label="Prazo SLA"
-                    value={`${prazoDiasUteis} dias úteis`}
+                    value={
+                      prazoEnvio
+                        ? `${prazoDiasUteis} dias úteis`
+                        : "Sem SLA de resposta"
+                    }
                   />
                 </div>
 
@@ -577,7 +748,7 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                   />
                   <ReviewCell
                     label="Prazo de envio à Petrobras"
-                    value={formatDate(prazoEnvio)}
+                    value={prazoEnvio ? formatDate(prazoEnvio) : "Sem SLA"}
                   />
                   <ReviewCell
                     label="Prazo de entrega"
@@ -613,7 +784,7 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                 onClick={() =>
                   step === 0 ? onOpenChange(false) : setStep((s) => s - 1)
                 }
-                disabled={createFid.isLoading}
+                disabled={busy}
                 icon={step === 0 ? undefined : <ArrowLeft24Regular />}
               >
                 {step === 0 ? "Cancelar" : "Voltar"}
@@ -631,14 +802,8 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                 <Button
                   appearance="primary"
                   onClick={onSubmit}
-                  disabled={createFid.isLoading}
-                  icon={
-                    createFid.isLoading ? (
-                      <Spinner size="tiny" />
-                    ) : (
-                      <Checkmark24Regular />
-                    )
-                  }
+                  disabled={busy}
+                  icon={busy ? <Spinner size="tiny" /> : <Checkmark24Regular />}
                 >
                   Criar FID
                 </Button>

@@ -5,9 +5,11 @@ import { TEAMS } from "../../config/teams";
 import styles from "./SubItemPathway.module.scss";
 
 // Horizontal routing for a sub-item (§7.4): connected steps, each with its responsible team badge.
-export const SubItemPathway: React.FC<{ strategyKey: StrategyKey }> = ({
-  strategyKey,
-}) => {
+export const SubItemPathway: React.FC<{
+  strategyKey: StrategyKey;
+  /** Index of the step in progress — earlier steps render as completed. */
+  activeStep?: number;
+}> = ({ strategyKey, activeStep }) => {
   const steps = PATHWAYS[strategyKey];
   if (!steps) return null;
   return (
@@ -15,10 +17,18 @@ export const SubItemPathway: React.FC<{ strategyKey: StrategyKey }> = ({
       {steps.map((step, index) => {
         const team = TEAMS[step.team];
         const style = { "--step-color": team.color } as React.CSSProperties;
+        const state =
+          activeStep === undefined
+            ? ""
+            : index < activeStep
+              ? styles.stepDone
+              : index === activeStep
+                ? styles.stepCurrent
+                : styles.stepPending;
         return (
           <React.Fragment key={`${step.label}-${index}`}>
             {index > 0 && <span className={styles.arrow}>›</span>}
-            <span className={styles.step} style={style}>
+            <span className={`${styles.step} ${state}`} style={style}>
               <span className={styles.stepLabel}>{step.label}</span>
               <span className={styles.stepTeam}>{team.label}</span>
             </span>

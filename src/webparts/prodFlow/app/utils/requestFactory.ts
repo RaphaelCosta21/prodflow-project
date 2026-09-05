@@ -3,6 +3,7 @@ import {
   Complexity,
   IBudget,
   IBudgetLine,
+  IDelineation,
   IFabricationRequest,
   IFinancials,
 } from "../models";
@@ -12,6 +13,9 @@ import {
   CONTRACT_MATERIALS,
   CONTRACT_SERVICES,
 } from "../config/contractWeights";
+
+// Single-project system (CIDEQ), so the form no longer asks for it.
+export const PROJECT_NAME = "CIDEQ";
 
 // Seeds every fixed contract row (qtd=0). The mask edits only QTD/HH; Peso stays fixed and the
 // full catalog is always present so the Excel export matches the immutable template row-for-row.
@@ -48,7 +52,6 @@ export function seedBudgetFromContract(): IBudget {
     tabela1: servicos,
     tabela2Materiais: materiais,
     tabela2Labor: labor,
-    tabela3: [],
     totalValor: 0,
   };
 }
@@ -60,7 +63,6 @@ export function createEmptyBudget(): IBudget {
     tabela1: [],
     tabela2Materiais: [],
     tabela2Labor: [],
-    tabela3: [],
     totalValor: 0,
   };
 }
@@ -91,10 +93,35 @@ export function ensureBudgetSeeded(budget: IBudget): IBudget {
       budget.tabela2Materiais || [],
     ),
     tabela2Labor: overlay(seeded.tabela2Labor, budget.tabela2Labor || []),
-    tabela3: budget.tabela3 || [],
     entregaDiasCorridos: budget.entregaDiasCorridos,
     observacoes: budget.observacoes,
     totalValor: budget.totalValor || 0,
+  };
+}
+
+export function createEmptyDelineation(): IDelineation {
+  return {
+    hh: 0,
+    horasUsinagem: 0,
+    horasAcabamento: 0,
+    horasMontagem: 0,
+    inspecaoDimensional: false,
+    horasInspecao: 0,
+    materials: [],
+    revision: "A",
+    checklist: [],
+  };
+}
+
+/** `hh` is the single source of truth for rollups — always the sum of the typed hours. */
+export function withDerivedHh(d: IDelineation): IDelineation {
+  return {
+    ...d,
+    hh:
+      (d.horasUsinagem || 0) +
+      (d.horasAcabamento || 0) +
+      (d.horasMontagem || 0) +
+      (d.inspecaoDimensional ? d.horasInspecao || 0 : 0),
   };
 }
 
@@ -109,11 +136,8 @@ export function createEmptyFinancials(): IFinancials {
 
 export interface INewRequestInput {
   osNumber: string;
-  osType?: "OS" | "OM";
-  projeto: string;
-  lote?: string;
   drawingCode: string;
-  drawingRevision?: string;
+  partNumberOii?: string;
   descricao: string;
   comentarios?: string;
   tipoOrcamento: string;
@@ -139,20 +163,21 @@ export function buildNewRequest(
     input.atendimento,
   );
   const now = new Date().toISOString();
-  const prazoEnvio = input.solicitacaoOrcamento
-    ? SlaService.prazoEnvio(
-        new Date(input.solicitacaoOrcamento),
-        complexidadeGeral,
-        input.atendimento,
-      ).toISOString()
-    : undefined;
+  // No complexity deadline (N/A) means no budget SLA — don't fabricate a due date.
+  const prazoEnvio =
+    input.solicitacaoOrcamento && prazoDiasUteis > 0
+      ? SlaService.prazoEnvio(
+          new Date(input.solicitacaoOrcamento),
+          complexidadeGeral,
+          input.atendimento,
+        ).toISOString()
+      : undefined;
 
   return {
     osNumber: input.osNumber,
-    osType: input.osType,
-    projeto: input.projeto,
-    lote: input.lote,
-    drawing: { code: input.drawingCode, revision: input.drawingRevision ?? "" },
+    projeto: PROJECT_NAME,
+    drawing: { code: input.drawingCode, revision: "" },
+    partNumberOii: input.partNumberOii,
     descricao: input.descricao,
     comentarios: input.comentarios,
     tipoOrcamento: input.tipoOrcamento,

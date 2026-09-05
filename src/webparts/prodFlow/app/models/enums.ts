@@ -2,10 +2,14 @@
 
 export type Complexity = "Baixa" | "Média" | "Alta" | "N/A" | "A definir";
 export type Attendance = "Interna" | "Externa"; // na base / fora da base
-export type Strategy = "Make" | "Buy";
+// "NA" = linha pai delineada pelos próprios filhos; não gera custo nem relatório.
+export type Strategy = "Make" | "Buy" | "NA";
 export type BuyType = "RawMaterial" | "CommercialItem"; // COTS
 export type MakeSite = "InHouse" | "Subcon";
 export type Phase = 1 | 2;
+
+// CRD/OII identify header attachments; BR/OII also tag the per-sub-item drawings.
+export type AttachmentCategory = "CRD" | "OII" | "BR";
 
 export type RequestStatus =
   | "Draft"

@@ -1,11 +1,13 @@
 import { BuyType, MakeSite, Strategy } from "../models";
 
-// The locked make/buy dropdown — 4 combined options mapping to strategy + buyType/makeSite.
+// The locked make/buy dropdown — 4 combined options mapping to strategy + buyType/makeSite,
+// plus "na" for parent lines whose children carry the delineation.
 export type StrategyKey =
   | "buyRaw"
   | "buyCommercial"
   | "makeInHouse"
-  | "makeSubcon";
+  | "makeSubcon"
+  | "na";
 
 export interface IStrategyOption {
   key: StrategyKey;
@@ -13,6 +15,8 @@ export interface IStrategyOption {
   strategy: Strategy;
   buyType?: BuyType;
   makeSite?: MakeSite;
+  /** Only selectable on BOM lines that have children. */
+  parentOnly?: boolean;
 }
 
 export const STRATEGY_OPTIONS: IStrategyOption[] = [
@@ -40,13 +44,24 @@ export const STRATEGY_OPTIONS: IStrategyOption[] = [
     strategy: "Make",
     makeSite: "Subcon",
   },
+  {
+    key: "na",
+    label: "N/A · Delineado pelos sub-itens",
+    strategy: "NA",
+    parentOnly: true,
+  },
 ];
+
+export function strategyOptionsFor(hasChildren: boolean): IStrategyOption[] {
+  return STRATEGY_OPTIONS.filter((o) => !o.parentOnly || hasChildren);
+}
 
 export function strategyKeyOf(
   strategy?: Strategy,
   buyType?: BuyType,
   makeSite?: MakeSite,
 ): StrategyKey | "" {
+  if (strategy === "NA") return "na";
   if (strategy === "Buy") {
     if (buyType === "CommercialItem") return "buyCommercial";
     if (buyType === "RawMaterial") return "buyRaw";

@@ -10,11 +10,13 @@ import {
   Field,
   Input,
   Textarea,
+  Tooltip,
 } from "@fluentui/react-components";
 import { IFabricationRequest, RequestStatus } from "../../models";
 import { useUpdateStatus } from "../../api/fids";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useStatusNotifier } from "../../hooks/useStatusNotifier";
+import { useStatusPermissions } from "../../hooks/useStatusPermissions";
 import { useUIStore } from "../../stores/useUIStore";
 import { canTransition } from "../../utils/statusHelpers";
 import { REQUEST_STATUS_MAP } from "../../config/statuses";
@@ -40,9 +42,23 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
   const addToast = useUIStore((s) => s.addToast);
   const updateStatus = useUpdateStatus(fid);
   const { notifyStatus } = useStatusNotifier();
+  const { canMoveTo, ownerLabel } = useStatusPermissions(data.status);
   const [dialog, setDialog] = React.useState<null | "approve" | "reject">(null);
   const [signatureRef, setSignatureRef] = React.useState("");
   const [reason, setReason] = React.useState("");
+
+  // Disabled buttons swallow their own tooltip, so the wrapper carries it.
+  const Gate: React.FC<{ to: RequestStatus; children: React.ReactNode }> = ({
+    to,
+    children,
+  }) =>
+    canMoveTo(to) ? (
+      <>{children}</>
+    ) : (
+      <Tooltip content={`Ação do time ${ownerLabel(to)}`} relationship="label">
+        <span>{children}</span>
+      </Tooltip>
+    );
 
   const go = (
     to: RequestStatus,
@@ -114,56 +130,88 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
       <GlassCard title="Ações">
         <div className={styles.actions}>
           {canTransition(data.status, "BudgetReview") && (
-            <Button
-              onClick={() =>
-                go("BudgetReview", "Orçamento consolidado para revisão.")
-              }
-            >
-              Consolidar (revisão)
-            </Button>
+            <Gate to="BudgetReview">
+              <Button
+                disabled={!canMoveTo("BudgetReview")}
+                onClick={() =>
+                  go("BudgetReview", "Orçamento consolidado para revisão.")
+                }
+              >
+                Consolidar (revisão)
+              </Button>
+            </Gate>
           )}
           {canTransition(data.status, "Submitted") && (
-            <Button
-              appearance="primary"
-              onClick={() => go("Submitted", "Orçamento enviado à Petrobras.")}
-            >
-              Enviar à Petrobras
-            </Button>
+            <Gate to="Submitted">
+              <Button
+                appearance="primary"
+                disabled={!canMoveTo("Submitted")}
+                onClick={() =>
+                  go("Submitted", "Orçamento enviado à Petrobras.")
+                }
+              >
+                Enviar à Petrobras
+              </Button>
+            </Gate>
           )}
           {data.status === "Submitted" && (
             <>
-              <Button appearance="primary" onClick={() => setDialog("approve")}>
+              <Button
+                appearance="primary"
+                disabled={!canMoveTo("Approved")}
+                onClick={() => setDialog("approve")}
+              >
                 Registrar aprovação
               </Button>
-              <Button onClick={() => setDialog("reject")}>
+              <Button
+                disabled={!canMoveTo("Rejected")}
+                onClick={() => setDialog("reject")}
+              >
                 Registrar reprovação
               </Button>
             </>
           )}
           {data.status === "Rejected" && (
-            <Button
-              onClick={() => go("Budgeting", "Revisão do orçamento iniciada.")}
-            >
-              Revisar orçamento
-            </Button>
+            <Gate to="Budgeting">
+              <Button
+                disabled={!canMoveTo("Budgeting")}
+                onClick={() =>
+                  go("Budgeting", "Revisão do orçamento iniciada.")
+                }
+              >
+                Revisar orçamento
+              </Button>
+            </Gate>
           )}
           {canTransition(data.status, "ReleasedForProduction") && (
-            <Button
-              appearance="primary"
-              onClick={() =>
-                go("ReleasedForProduction", "Liberado para produção (Go Live).")
-              }
-            >
-              Liberar para produção
-            </Button>
+            <Gate to="ReleasedForProduction">
+              <Button
+                appearance="primary"
+                disabled={!canMoveTo("ReleasedForProduction")}
+                onClick={() =>
+                  go(
+                    "ReleasedForProduction",
+                    "Liberado para produção (Go Live).",
+                  )
+                }
+              >
+                Liberar para produção
+              </Button>
+            </Gate>
           )}
           {canTransition(data.status, "OnHold") && (
-            <Button onClick={() => go("OnHold", "FID paralisado.")}>
+            <Button
+              disabled={!canMoveTo("OnHold")}
+              onClick={() => go("OnHold", "FID paralisado.")}
+            >
               Paralisar
             </Button>
           )}
           {canTransition(data.status, "Cancelled") && (
-            <Button onClick={() => go("Cancelled", "FID cancelado.")}>
+            <Button
+              disabled={!canMoveTo("Cancelled")}
+              onClick={() => go("Cancelled", "FID cancelado.")}
+            >
               Cancelar
             </Button>
           )}

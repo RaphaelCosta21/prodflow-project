@@ -1,0 +1,110 @@
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.2fr) minmax(200px, 1fr) minmax(
+      280px,
+      2fr
+    );
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 250ms ease;
+
+  &:hover {
+    background: var(--hover-bg);
+  }
+
+  &:last-of-type {
+    border-bottom: 0;
+  }
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pn {
+  font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team {
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--team-color, var(--border));
+  color: var(--team-color, var(--text-secondary));
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.started {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pathwayCell {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.noStrategy {
+  font-size: 12px;
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--card-bg-elevated);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@media (max-width: 900px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

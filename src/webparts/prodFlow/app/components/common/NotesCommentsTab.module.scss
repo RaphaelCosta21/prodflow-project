@@ -1,0 +1,85 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.notesArea {
+  width: 100%;
+  min-height: 120px;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.composerArea {
+  flex: 1;
+  min-height: 60px;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--card-bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.commentBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ts {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.text {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 700px) {
+  .composer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

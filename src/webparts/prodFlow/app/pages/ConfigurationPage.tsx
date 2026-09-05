@@ -17,7 +17,9 @@ import {
   ACCESS_AREAS,
   ACCESS_ROLES,
   DEFAULT_APP_CONFIG,
+  FIXED_BUDGET_TYPES,
   NOTIFICATION_EVENTS,
+  budgetTypeOptions,
 } from "../config/appConfigDefaults";
 import { useAppConfig, useSaveAppConfig } from "../api/config";
 import { useAccessLevel } from "../hooks/useAccessLevel";
@@ -40,6 +42,7 @@ type TabKey =
   | "contract"
   | "sla"
   | "holidays"
+  | "budgetTypes"
   | "statuses"
   | "teams"
   | "access"
@@ -53,6 +56,7 @@ const NAV: { group: string; items: { key: TabKey; label: string }[] }[] = [
       { key: "contract", label: "Contrato & Pesos" },
       { key: "sla", label: "SLA × Complexidade" },
       { key: "holidays", label: "Feriados BR" },
+      { key: "budgetTypes", label: "Tipos de Orçamento" },
     ],
   },
   {
@@ -91,6 +95,7 @@ export const ConfigurationPage: React.FC = () => {
     IProvisionResult | undefined
   >();
   const [newHoliday, setNewHoliday] = React.useState("");
+  const [newBudgetType, setNewBudgetType] = React.useState("");
 
   React.useEffect(() => {
     if (data && !dirty) {
@@ -268,6 +273,66 @@ export const ConfigurationPage: React.FC = () => {
       </div>
     </div>
   );
+
+  const renderBudgetTypes = (): React.ReactElement => {
+    const options = budgetTypeOptions(draft.budgetTypes);
+    return (
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h3>Tipos de Orçamento</h3>
+          <p>
+            Opções do campo “Tipo de Orçamento” na criação do FID.
+            {" “"}
+            {FIXED_BUDGET_TYPES.join("” e “")}
+            {"” "}
+            são fixas e não podem ser removidas.
+          </p>
+        </div>
+        {canEdit && (
+          <div className={styles.inlineForm}>
+            <Input
+              value={newBudgetType}
+              placeholder="Novo tipo de orçamento"
+              onChange={(_, d) => setNewBudgetType(d.value)}
+            />
+            <Button
+              icon={<Add16Regular />}
+              disabled={!newBudgetType.trim()}
+              onClick={() => {
+                const value = newBudgetType.trim();
+                if (value && options.indexOf(value) < 0) {
+                  patch({ budgetTypes: options.concat([value]) });
+                }
+                setNewBudgetType("");
+              }}
+            >
+              Adicionar
+            </Button>
+          </div>
+        )}
+        <div className={styles.chipList}>
+          {options.map((t) => {
+            const fixed = FIXED_BUDGET_TYPES.indexOf(t) >= 0;
+            return (
+              <span key={t} className={styles.chip}>
+                {t}
+                {canEdit && !fixed && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patch({ budgetTypes: options.filter((x) => x !== t) })
+                    }
+                  >
+                    <Delete16Regular />
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const renderStatuses = (): React.ReactElement => (
     <div className={styles.section}>
@@ -514,6 +579,7 @@ export const ConfigurationPage: React.FC = () => {
     if (tab === "contract") return renderContract();
     if (tab === "sla") return renderSla();
     if (tab === "holidays") return renderHolidays();
+    if (tab === "budgetTypes") return renderBudgetTypes();
     if (tab === "statuses") return renderStatuses();
     if (tab === "teams") return renderTeams();
     if (tab === "access") return renderAccess();

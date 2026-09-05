@@ -1,0 +1,273 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Pacotes ── */
+
+.packages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.packageCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--card-bg-elevated);
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+.packageHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.supplier {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ref {
+  font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.packageTotal {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.packageMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.packageFiles,
+.attachRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 220px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--primary-accent);
+    border-color: var(--primary-accent);
+  }
+}
+
+.packageActions {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* ── Matriz ── */
+
+.matrix {
+  display: flex;
+  flex-direction: column;
+}
+
+.matrixHead,
+.matrixRow {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.6fr) 150px 90px minmax(240px, 2fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.matrixHead {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg-elevated);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.matrixRow {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: var(--hover-bg);
+  }
+}
+
+.countOk {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.countWarn {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.options {
+  min-width: 0;
+}
+
+.bestOption {
+  font-weight: 700;
+  color: var(--success);
+}
+
+.noQuote {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Diálogo ── */
+
+.dialog {
+  max-width: 960px;
+  width: 92vw;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.itemsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.itemsTable {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: 32px minmax(160px, 2fr) 90px 130px 110px 110px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.itemIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pn {
+  font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qtd {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lineTotal {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialogTotal {
+  margin-top: 12px;
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-secondary);
+
+  strong {
+    color: var(--primary-accent);
+  }
+}
+
+@media (max-width: 900px) {
+  .matrixHead {
+    display: none;
+  }
+
+  .matrixRow,
+  .itemRow {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 6px;
+  }
+}

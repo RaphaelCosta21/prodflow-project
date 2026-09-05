@@ -1,6 +1,11 @@
 import { Attendance, Complexity, Phase, RequestStatus } from "./enums";
 import { IDrawing, ISubItem } from "./subItem";
+import { IAttachmentRef } from "./attachment";
 import { IBudget } from "./budget";
+import { IPartsBudget } from "./partsBudget";
+import { IQuotationPackage } from "./quotation";
+import { IComment } from "./comment";
+import { IPhaseHistoryEntry, IStatusHistoryEntry } from "./history";
 import { IFinancials } from "./financials";
 
 export interface IHistoryEvent {
@@ -33,20 +38,14 @@ export interface IMedicao {
   date?: string;
 }
 
-export interface IAttachmentRef {
-  name: string;
-  url: string;
-  kind: string;
-}
-
 // One item per FID in `prodflow-requests` (full JSON in `jsondata` + ~5 indexed columns).
 export interface IFabricationRequest {
   fid: string; // FID0000001
   osNumber: string;
-  osType?: "OS" | "OM";
   projeto: string;
   lote?: string;
   drawing: IDrawing;
+  partNumberOii?: string;
   descricao: string;
   comentarios?: string;
   tipoOrcamento: string;
@@ -57,7 +56,10 @@ export interface IFabricationRequest {
   phase: Phase;
   status: RequestStatus;
   dates: IRequestDates;
+  /** @deprecated Orçamento migrou para `subItems[].fabricationBudget` + `partsBudget`. */
   budget: IBudget;
+  partsBudget?: IPartsBudget;
+  quotationPackages?: IQuotationPackage[];
   financials: IFinancials;
   subItems: ISubItem[];
   approval?: IApproval;
@@ -65,6 +67,10 @@ export interface IFabricationRequest {
   semanaTermino?: string;
   mesPrevisto?: string;
   history: IHistoryEvent[];
+  phaseHistory?: IPhaseHistoryEntry[];
+  statusHistory?: IStatusHistoryEntry[];
+  notes?: Record<string, string>;
+  comments?: IComment[];
   attachments: IAttachmentRef[];
 }
 

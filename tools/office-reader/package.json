@@ -1,0 +1,16 @@
+{
+  "name": "prodflow-office-reader",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI local para extrair conteudo completo de .xlsx/.xlsm/.csv (incluindo formulas) e .docx",
+  "bin": {
+    "read-office": "./read-office.mjs"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.11.0",
+    "prodflow": "file:../.."
+  }
+}

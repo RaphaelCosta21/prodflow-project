@@ -101,7 +101,7 @@ export const ApprovalsPage: React.FC = () => {
                   <span>{r.osNumber}</span>
                   <span className={styles.desc}>{r.descricao}</span>
                   <span className={styles.right}>
-                    {formatCurrencyBRL(r.budget.totalValor)}
+                    {formatCurrencyBRL(r.financials.orcamentoOceaneering)}
                   </span>
                   <span className={overdue ? styles.overdue : undefined}>
                     {formatDate(r.dates.prazoEnvioPetrobras)}

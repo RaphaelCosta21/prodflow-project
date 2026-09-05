@@ -39,4 +39,6 @@ export const PATHWAYS: Record<StrategyKey, IPathwayStep[]> = {
     { label: "Inspeção", team: "quality" },
     { label: "Recebimento", team: "warehouse" },
   ],
+  // Linha pai: o roteiro real acontece nos filhos.
+  na: [{ label: "Estratégia", team: "planning" }],
 };

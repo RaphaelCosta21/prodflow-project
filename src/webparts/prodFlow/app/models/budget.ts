@@ -14,21 +14,28 @@ export interface IBudgetLine {
   pesoTotal: number;
 }
 
-export interface IBudgetTable3Line {
-  categoria: string;
-  valor: number;
-  obs?: string;
-}
-
-// Máscara do Relatório de Orçamento (Tabelas 1/2/3).
-export interface IBudget {
-  contrato: string;
-  numeroOrcamento: string;
-  dataEnvio?: string;
+export interface IBudgetTables {
   tabela1: IBudgetLine[]; // serviços adicionais
   tabela2Materiais: IBudgetLine[]; // matéria prima
   tabela2Labor: IBudgetLine[]; // usinagem/caldeiraria/engenharia (HH)
-  tabela3: IBudgetTable3Line[]; // aquisição de partes e peças (COTS)
+}
+
+// Máscara do Relatório de Orçamento de Fabricação — uma por sub-item Make.
+export interface IFabricationBudget extends IBudgetTables {
+  subItemId: string;
+  contrato: string;
+  numeroOrcamento: string;
+  dataEnvio?: string;
+  entregaDiasCorridos?: number;
+  observacoes?: string;
+  totalValor: number;
+}
+
+/** @deprecated Orçamento agora é por sub-item (`ISubItem.fabricationBudget`) + `IPartsBudget`. */
+export interface IBudget extends IBudgetTables {
+  contrato: string;
+  numeroOrcamento: string;
+  dataEnvio?: string;
   entregaDiasCorridos?: number;
   observacoes?: string;
   totalValor: number;

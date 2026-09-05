@@ -11,7 +11,8 @@ export const complexitySchema = z.enum([
   "A definir",
 ]);
 export const attendanceSchema = z.enum(["Interna", "Externa"]);
-export const strategySchema = z.enum(["Make", "Buy"]);
+export const attachmentCategorySchema = z.enum(["CRD", "OII", "BR"]);
+export const strategySchema = z.enum(["Make", "Buy", "NA"]);
 export const buyTypeSchema = z.enum(["RawMaterial", "CommercialItem"]);
 export const makeSiteSchema = z.enum(["InHouse", "Subcon"]);
 
@@ -64,8 +65,33 @@ export const checklistStepSchema = z.object({
   by: z.string().optional(),
 });
 
+export const attachmentRefSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  kind: z.string(),
+  category: attachmentCategorySchema.optional(),
+  refCode: z.string().optional(),
+  uploadedAt: z.string().optional(),
+  uploadedBy: z.string().optional(),
+});
+
 export const delineationSchema = z.object({
   hh: z.number(),
+  horasUsinagem: z.number().default(0),
+  horasAcabamento: z.number().default(0),
+  horasMontagem: z.number().default(0),
+  inspecaoDimensional: z.boolean().default(false),
+  horasInspecao: z.number().default(0),
+  materials: z
+    .array(
+      z.object({
+        materialKey: z.string(),
+        categoria: z.string(),
+        descricao: z.string(),
+        kg: z.number(),
+      }),
+    )
+    .default([]),
   eps: z.string().optional(),
   inspections: z.array(z.string()).optional(),
   consumables: z.string().optional(),
@@ -83,6 +109,9 @@ export const delineationSchema = z.object({
     )
     .optional(),
   printableUrl: z.string().optional(),
+  concluido: z.boolean().optional(),
+  concluidoPor: z.string().optional(),
+  concluidoEm: z.string().optional(),
   checklist: z.array(checklistStepSchema),
 });
 
@@ -122,6 +151,14 @@ export const subItemSchema: z.ZodTypeAny = z.lazy(() =>
     status: subItemStatusSchema,
     delineation: delineationSchema.optional(),
     quotation: quotationSchema.optional(),
+    drawings: z.array(attachmentRefSchema).optional(),
+    startedAt: z.string().optional(),
+    startedBy: z.string().optional(),
+    ownerTeam: z.string().optional(),
+    naReason: z.string().optional(),
+    selectedQuotationId: z.string().optional(),
+    statusHistory: z.array(z.unknown()).optional(),
+    fabricationBudget: z.unknown().optional(),
     rcOrSr: z.string().optional(),
     poOrWo: z.string().optional(),
     prazoFabricacaoDias: z.number().optional(),
@@ -146,6 +183,7 @@ export const subItemSchema: z.ZodTypeAny = z.lazy(() =>
 );
 
 export const budgetLineSchema = z.object({
+  key: z.string().optional(),
   categoria: z.string().optional(),
   descricao: z.string(),
   criterio: z.enum(["HH", "UN", "M2", "KG"]).optional(),
@@ -155,23 +193,75 @@ export const budgetLineSchema = z.object({
   pesoTotal: z.number(),
 });
 
-export const budgetSchema = z.object({
-  contrato: z.string(),
-  numeroOrcamento: z.string(),
-  dataEnvio: z.string().optional(),
-  tabela1: z.array(budgetLineSchema),
-  tabela2Materiais: z.array(budgetLineSchema),
-  tabela2Labor: z.array(budgetLineSchema),
-  tabela3: z.array(
+// Tabela 3 saiu do relatório de fabricação; `.passthrough()` ignora o campo legado sem quebrar a leitura.
+export const budgetSchema = z
+  .object({
+    contrato: z.string(),
+    numeroOrcamento: z.string(),
+    dataEnvio: z.string().optional(),
+    tabela1: z.array(budgetLineSchema),
+    tabela2Materiais: z.array(budgetLineSchema),
+    tabela2Labor: z.array(budgetLineSchema),
+    entregaDiasCorridos: z.number().optional(),
+    observacoes: z.string().optional(),
+    totalValor: z.number(),
+  })
+  .passthrough();
+
+export const quotationPackageSchema = z.object({
+  id: z.string(),
+  supplier: z.string(),
+  reference: z.string().optional(),
+  date: z.string().optional(),
+  validade: z.string().optional(),
+  moeda: z.string(),
+  leadTimeDays: z.number().optional(),
+  attachments: z.array(attachmentRefSchema),
+  coveredSubItemIds: z.array(z.string()),
+  lines: z.array(
     z.object({
-      categoria: z.string(),
-      valor: z.number(),
+      subItemId: z.string(),
+      qtd: z.number(),
+      valorUnit: z.number(),
+      valorTotal: z.number(),
+      leadTimeDays: z.number().optional(),
+      prazoEntrega: z.string().optional(),
       obs: z.string().optional(),
     }),
   ),
-  entregaDiasCorridos: z.number().optional(),
+  obs: z.string().optional(),
+  by: z.string().optional(),
+  concluido: z.boolean().optional(),
+});
+
+export const partsBudgetSchema = z.object({
+  contrato: z.string(),
+  numeroOrcamento: z.string(),
+  revisao: z.string().optional(),
+  data: z.string().optional(),
+  validadeDias: z.number().optional(),
   observacoes: z.string().optional(),
-  totalValor: z.number(),
+  lines: z.array(
+    z.object({
+      subItemId: z.string(),
+      item: z.number(),
+      descricao: z.string(),
+      pn: z.string().optional(),
+      material: z.string().optional(),
+      qtd: z.number(),
+      unidade: z.string(),
+      fornecedor: z.string().optional(),
+      quotationId: z.string().optional(),
+      valorUnit: z.number(),
+      pisCofinsUnit: z.number(),
+      issUnit: z.number(),
+      impostosUnit: z.number(),
+      custoTotalUnit: z.number(),
+      total: z.number(),
+      prazoEntrega: z.string().optional(),
+    }),
+  ),
+  total: z.number(),
 });
 
 export const financialsSchema = z.object({
@@ -191,10 +281,10 @@ export const historyEventSchema = z.object({
 export const fabricationRequestSchema = z.object({
   fid: z.string(),
   osNumber: z.string(),
-  osType: z.enum(["OS", "OM"]).optional(),
   projeto: z.string(),
   lote: z.string().optional(),
   drawing: drawingSchema,
+  partNumberOii: z.string().optional(),
   descricao: z.string(),
   comentarios: z.string().optional(),
   tipoOrcamento: z.string(),
@@ -215,6 +305,24 @@ export const fabricationRequestSchema = z.object({
     prazoDiasCorridos: z.number().optional(),
   }),
   budget: budgetSchema,
+  partsBudget: partsBudgetSchema.optional(),
+  quotationPackages: z.array(quotationPackageSchema).optional(),
+  phaseHistory: z.array(z.unknown()).optional(),
+  statusHistory: z.array(z.unknown()).optional(),
+  notes: z.record(z.string()).optional(),
+  comments: z
+    .array(
+      z.object({
+        id: z.string(),
+        author: z.object({ name: z.string(), email: z.string() }),
+        text: z.string(),
+        ts: z.string(),
+        section: z.string().optional(),
+        edited: z.boolean().optional(),
+        editedAt: z.string().optional(),
+      }),
+    )
+    .optional(),
   financials: financialsSchema,
   subItems: z.array(subItemSchema),
   approval: z
@@ -235,7 +343,13 @@ export const fabricationRequestSchema = z.object({
   mesPrevisto: z.string().optional(),
   history: z.array(historyEventSchema),
   attachments: z.array(
-    z.object({ name: z.string(), url: z.string(), kind: z.string() }),
+    z.object({
+      name: z.string(),
+      url: z.string(),
+      kind: z.string(),
+      category: attachmentCategorySchema.optional(),
+      refCode: z.string().optional(),
+    }),
   ),
 });
 
@@ -255,12 +369,11 @@ export function safeParseFabricationRequest(
 
 // Validates the create-FID form input, before buildNewRequest() derives the full payload.
 export const newRequestInputSchema = z.object({
-  osNumber: z.string().min(1, "Informe o número da OS/OM."),
-  osType: z.enum(["OS", "OM"]).optional(),
-  projeto: z.string().min(1, "Informe o projeto."),
-  lote: z.string().optional(),
+  osNumber: z
+    .string()
+    .regex(/^6000\d+$/, "Informe os números da OS após o prefixo 6000."),
   drawingCode: z.string().min(1, "Informe o código do desenho (CRD)."),
-  drawingRevision: z.string().optional(),
+  partNumberOii: z.string().optional(),
   descricao: z.string().min(1, "Informe a descrição resumida."),
   comentarios: z.string().optional(),
   tipoOrcamento: z.string().min(1, "Informe o tipo de orçamento."),

@@ -1,10 +1,14 @@
 import * as React from "react";
 import { Button } from "@fluentui/react-components";
 import { ArrowDownload20Regular } from "@fluentui/react-icons";
-import { IFabricationRequest } from "../models";
+import { IFabricationRequest, ISubItem } from "../models";
 import { useFidsFull } from "../api/fids";
 import { useUIStore } from "../stores/useUIStore";
+import { BudgetService } from "../services/BudgetService";
 import { exportBudgetExcel } from "../utils/exportBudgetExcel";
+import { exportPartsBudgetDoc } from "../utils/exportPartsBudgetDoc";
+import { delineationToBudget } from "../utils/delineationToBudget";
+import { derivePartsBudget, makeItems } from "../utils/partsBudgetBuilder";
 import { formatCurrencyBRL, formatDate } from "../utils/formatters";
 import GlassCard from "../components/common/GlassCard";
 import EmptyState from "../components/common/EmptyState";
@@ -14,33 +18,78 @@ import FidLink from "../components/common/FidLink";
 import FilterPanel from "../components/common/FilterPanel";
 import styles from "./BudgetReportsPage.module.scss";
 
+interface IReportRow {
+  key: string;
+  request: IFabricationRequest;
+  kind: "fabrication" | "parts";
+  subItem?: ISubItem;
+  label: string;
+  numeroOrcamento: string;
+  total: number;
+}
+
+// Every Make sub-item yields one fabrication report; all Buy lines share one parts report.
+function reportsOf(request: IFabricationRequest): IReportRow[] {
+  const rows: IReportRow[] = makeItems(request).map((s) => {
+    const budget = s.fabricationBudget ?? delineationToBudget(request, s);
+    return {
+      key: `${request.fid}-${s.id}`,
+      request,
+      kind: "fabrication" as const,
+      subItem: s,
+      label: `Fabricação · ${s.pn}`,
+      numeroOrcamento: budget.numeroOrcamento || "—",
+      total: BudgetService.recalcFabricationBudget(budget).totalValor,
+    };
+  });
+  const parts = derivePartsBudget(request);
+  if (parts.lines.length > 0) {
+    rows.push({
+      key: `${request.fid}-parts`,
+      request,
+      kind: "parts",
+      label: `Partes e peças · ${parts.lines.length} item(ns)`,
+      numeroOrcamento: parts.numeroOrcamento || "—",
+      total: parts.total,
+    });
+  }
+  return rows;
+}
+
 export const BudgetReportsPage: React.FC = () => {
   const { data, isLoading, isError } = useFidsFull();
   const addToast = useUIStore((s) => s.addToast);
   const [search, setSearch] = React.useState("");
-  const [busyFid, setBusyFid] = React.useState<string | undefined>();
+  const [busyKey, setBusyKey] = React.useState<string | undefined>();
 
   const rows = React.useMemo(() => {
-    const withBudget = (data ?? []).filter((r) => r.budget.totalValor > 0);
+    const all = (data ?? []).reduce<IReportRow[]>(
+      (acc, r) => acc.concat(reportsOf(r)),
+      [],
+    );
     const q = search.trim().toLowerCase();
-    if (!q) return withBudget;
-    return withBudget.filter(
-      (r) =>
-        r.fid.toLowerCase().indexOf(q) >= 0 ||
-        r.osNumber.toLowerCase().indexOf(q) >= 0 ||
-        (r.budget.numeroOrcamento || "").toLowerCase().indexOf(q) >= 0 ||
-        r.descricao.toLowerCase().indexOf(q) >= 0,
+    if (!q) return all;
+    return all.filter(
+      (row) =>
+        row.request.fid.toLowerCase().indexOf(q) >= 0 ||
+        row.request.osNumber.toLowerCase().indexOf(q) >= 0 ||
+        row.numeroOrcamento.toLowerCase().indexOf(q) >= 0 ||
+        row.label.toLowerCase().indexOf(q) >= 0,
     );
   }, [data, search]);
 
-  const download = async (r: IFabricationRequest): Promise<void> => {
-    setBusyFid(r.fid);
+  const download = async (row: IReportRow): Promise<void> => {
+    setBusyKey(row.key);
     try {
-      await exportBudgetExcel(r);
+      if (row.kind === "parts") {
+        exportPartsBudgetDoc(row.request, derivePartsBudget(row.request));
+      } else {
+        await exportBudgetExcel(row.request, row.subItem);
+      }
     } catch {
-      addToast("Falha ao gerar o Excel.", "error");
+      addToast("Falha ao gerar o relatório.", "error");
     } finally {
-      setBusyFid(undefined);
+      setBusyKey(undefined);
     }
   };
 
@@ -49,7 +98,7 @@ export const BudgetReportsPage: React.FC = () => {
       <div className={styles.head}>
         <h1 className={styles.title}>Relatórios de Orçamento</h1>
         <span className={styles.phase}>Fase 1</span>
-        <span className={styles.count}>{rows.length} orçamentos</span>
+        <span className={styles.count}>{rows.length} relatórios</span>
       </div>
 
       <FilterPanel
@@ -70,48 +119,48 @@ export const BudgetReportsPage: React.FC = () => {
       ) : rows.length === 0 ? (
         <GlassCard>
           <EmptyState
-            title="Nenhum orçamento"
-            description="Preencha a máscara de orçamento na aba Orçamento de um FID."
+            title="Nenhum relatório"
+            description="Defina a estratégia dos sub-itens: cada item Make gera um relatório de fabricação e os itens Buy geram o de partes e peças."
           />
         </GlassCard>
       ) : (
         <GlassCard
-          subtitle="O Excel sai no template oficial da Petrobras"
+          subtitle="Fabricação sai no template oficial da Petrobras; partes e peças, em Word"
           noBodyPadding
         >
           <div className={styles.table}>
             <div className={styles.headerRow}>
               <span>FID</span>
               <span>OS</span>
+              <span>Relatório</span>
               <span>Nº orçamento</span>
-              <span>Data de envio</span>
-              <span className={styles.right}>Entrega</span>
+              <span className={styles.right}>Prazo p/ envio</span>
               <span className={styles.right}>Total</span>
               <span>Status</span>
               <span />
             </div>
-            {rows.map((r) => (
-              <div key={r.fid} className={styles.row}>
-                <FidLink fid={r.fid} />
-                <span>{r.osNumber}</span>
-                <span>{r.budget.numeroOrcamento || "—"}</span>
-                <span>{formatDate(r.budget.dataEnvio)}</span>
+            {rows.map((row) => (
+              <div key={row.key} className={styles.row}>
+                <FidLink fid={row.request.fid} />
+                <span>{row.request.osNumber}</span>
+                <span>{row.label}</span>
+                <span>{row.numeroOrcamento}</span>
                 <span className={styles.right}>
-                  {r.budget.entregaDiasCorridos
-                    ? `${r.budget.entregaDiasCorridos} dias`
-                    : "—"}
+                  {formatDate(row.request.dates.prazoEnvioPetrobras)}
                 </span>
                 <span className={`${styles.right} ${styles.total}`}>
-                  {formatCurrencyBRL(r.budget.totalValor)}
+                  {formatCurrencyBRL(row.total)}
                 </span>
-                <StatusBadge kind="request" status={r.status} />
+                <StatusBadge kind="request" status={row.request.status} />
                 <Button
                   size="small"
                   icon={<ArrowDownload20Regular />}
-                  disabled={busyFid === r.fid}
-                  onClick={() => download(r)}
+                  disabled={busyKey === row.key}
+                  onClick={() => {
+                    download(row).catch(() => undefined);
+                  }}
                 >
-                  Excel
+                  {row.kind === "parts" ? "Word" : "Excel"}
                 </Button>
               </div>
             ))}

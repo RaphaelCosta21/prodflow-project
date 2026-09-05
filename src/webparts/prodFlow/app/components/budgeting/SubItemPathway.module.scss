@@ -33,3 +33,21 @@
   color: var(--text-muted);
   font-size: 14px;
 }
+
+.stepDone {
+  border-color: var(--success);
+  opacity: 0.85;
+
+  .stepTeam {
+    color: var(--success);
+  }
+}
+
+.stepCurrent {
+  box-shadow: var(--shadow-glow);
+  background: var(--card-bg);
+}
+
+.stepPending {
+  opacity: 0.45;
+}

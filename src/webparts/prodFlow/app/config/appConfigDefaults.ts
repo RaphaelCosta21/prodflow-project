@@ -4,6 +4,24 @@ import { IAppConfig } from "../stores/useConfigStore";
 // This is the lockout guard — the stored superAdminEmails are merged on top of it.
 export const BUILT_IN_SUPER_ADMINS: string[] = ["rcosta1@oceaneering.com"];
 
+// "Partes e Peças" skips the complexity SLA entirely (Oceaneering sets its own deadline).
+export const PARTS_BUDGET_TYPE = "Partes e Peças";
+export const FABRICATION_BUDGET_TYPE = "Fabricação";
+
+// Always offered in the wizard and never removable in the settings page.
+export const FIXED_BUDGET_TYPES: string[] = [
+  FABRICATION_BUDGET_TYPE,
+  PARTS_BUDGET_TYPE,
+];
+
+// Fixed options first, then the admin-defined extras (deduplicated).
+export function budgetTypeOptions(configured?: string[]): string[] {
+  const extras = (configured ?? []).filter(
+    (t) => t.trim() && FIXED_BUDGET_TYPES.indexOf(t) < 0,
+  );
+  return FIXED_BUDGET_TYPES.concat(extras);
+}
+
 // Seed used until an admin saves the config to prodflow-config.
 // SLA numbers mirror §10.1 (business days by complexity × attendance).
 export const DEFAULT_APP_CONFIG: IAppConfig = {
@@ -13,6 +31,7 @@ export const DEFAULT_APP_CONFIG: IAppConfig = {
     Alta: { Interna: 5, Externa: 15 },
   },
   holidays: [],
+  budgetTypes: FIXED_BUDGET_TYPES,
   statusColors: {},
   teamColors: {},
   defaultTheme: "light",
