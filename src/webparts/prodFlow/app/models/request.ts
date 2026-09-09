@@ -55,6 +55,8 @@ export interface IFabricationRequest {
   atendimento: Attendance;
   phase: Phase;
   status: RequestStatus;
+  /** Status to return to when leaving `OnHold`. */
+  resumeStatus?: RequestStatus;
   dates: IRequestDates;
   /** @deprecated Orçamento migrou para `subItems[].fabricationBudget` + `partsBudget`. */
   budget: IBudget;
@@ -81,4 +83,5 @@ export interface IFabricationRequestHeader {
   phase: Phase;
   status: RequestStatus;
   year: number;
+  tipoOrcamento: string;
 }

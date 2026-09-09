@@ -20,17 +20,11 @@ import { useStatusPermissions } from "../../hooks/useStatusPermissions";
 import { useUIStore } from "../../stores/useUIStore";
 import { canTransition } from "../../utils/statusHelpers";
 import { REQUEST_STATUS_MAP } from "../../config/statuses";
+import { workflowOf } from "../../config/workflows";
 import { formatDate } from "../../utils/formatters";
 import GlassCard from "../common/GlassCard";
 import HistoryTimeline from "../common/HistoryTimeline";
 import styles from "./ApprovalTab.module.scss";
-
-const PHASE1_FLOW: RequestStatus[] = [
-  "Budgeting",
-  "BudgetReview",
-  "Submitted",
-  "Approved",
-];
 
 export interface IApprovalTabProps {
   fid: string;
@@ -42,10 +36,26 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
   const addToast = useUIStore((s) => s.addToast);
   const updateStatus = useUpdateStatus(fid);
   const { notifyStatus } = useStatusNotifier();
-  const { canMoveTo, ownerLabel } = useStatusPermissions(data.status);
+  const flow = workflowOf(data.tipoOrcamento);
+  const { canMoveTo, ownerLabel } = useStatusPermissions(
+    data.status,
+    flow,
+    data.resumeStatus,
+  );
+  const releaseStatus: RequestStatus =
+    flow === "parts" ? "ReleasedForProcurement" : "ReleasedForFabrication";
+  const phase1Flow: RequestStatus[] = [
+    "InDelineation",
+    "Submitted",
+    "Approved",
+    releaseStatus,
+  ];
   const [dialog, setDialog] = React.useState<null | "approve" | "reject">(null);
   const [signatureRef, setSignatureRef] = React.useState("");
   const [reason, setReason] = React.useState("");
+
+  const may = (to: RequestStatus): boolean =>
+    canTransition(data.status, to, flow, data.resumeStatus);
 
   // Disabled buttons swallow their own tooltip, so the wrapper carries it.
   const Gate: React.FC<{ to: RequestStatus; children: React.ReactNode }> = ({
@@ -92,13 +102,13 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
     setReason("");
   };
 
-  const currentIndex = PHASE1_FLOW.indexOf(data.status);
+  const currentIndex = phase1Flow.indexOf(data.status);
 
   return (
     <div className={styles.wrap}>
       <GlassCard title="Fluxo de Aprovação">
         <div className={styles.stepper}>
-          {PHASE1_FLOW.map((s, i) => (
+          {phase1Flow.map((s, i) => (
             <React.Fragment key={s}>
               <div
                 className={[
@@ -114,7 +124,7 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
                   {REQUEST_STATUS_MAP[s].label}
                 </span>
               </div>
-              {i < PHASE1_FLOW.length - 1 && (
+              {i < phase1Flow.length - 1 && (
                 <span className={styles.stepLine} />
               )}
             </React.Fragment>
@@ -129,19 +139,7 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
 
       <GlassCard title="Ações">
         <div className={styles.actions}>
-          {canTransition(data.status, "BudgetReview") && (
-            <Gate to="BudgetReview">
-              <Button
-                disabled={!canMoveTo("BudgetReview")}
-                onClick={() =>
-                  go("BudgetReview", "Orçamento consolidado para revisão.")
-                }
-              >
-                Consolidar (revisão)
-              </Button>
-            </Gate>
-          )}
-          {canTransition(data.status, "Submitted") && (
+          {may("Submitted") && (
             <Gate to="Submitted">
               <Button
                 appearance="primary"
@@ -172,34 +170,31 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
             </>
           )}
           {data.status === "Rejected" && (
-            <Gate to="Budgeting">
+            <Gate to="InDelineation">
               <Button
-                disabled={!canMoveTo("Budgeting")}
+                disabled={!canMoveTo("InDelineation")}
                 onClick={() =>
-                  go("Budgeting", "Revisão do orçamento iniciada.")
+                  go("InDelineation", "Revisão do orçamento iniciada.")
                 }
               >
                 Revisar orçamento
               </Button>
             </Gate>
           )}
-          {canTransition(data.status, "ReleasedForProduction") && (
-            <Gate to="ReleasedForProduction">
+          {may(releaseStatus) && (
+            <Gate to={releaseStatus}>
               <Button
                 appearance="primary"
-                disabled={!canMoveTo("ReleasedForProduction")}
+                disabled={!canMoveTo(releaseStatus)}
                 onClick={() =>
-                  go(
-                    "ReleasedForProduction",
-                    "Liberado para produção (Go Live).",
-                  )
+                  go(releaseStatus, "Go Live — liberado para a fase 2.")
                 }
               >
-                Liberar para produção
+                {REQUEST_STATUS_MAP[releaseStatus].label}
               </Button>
             </Gate>
           )}
-          {canTransition(data.status, "OnHold") && (
+          {may("OnHold") && (
             <Button
               disabled={!canMoveTo("OnHold")}
               onClick={() => go("OnHold", "FID paralisado.")}
@@ -207,7 +202,7 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
               Paralisar
             </Button>
           )}
-          {canTransition(data.status, "Cancelled") && (
+          {may("Cancelled") && (
             <Button
               disabled={!canMoveTo("Cancelled")}
               onClick={() => go("Cancelled", "FID cancelado.")}

@@ -7,13 +7,14 @@ import EmptyState from "../components/common/EmptyState";
 import GlassCard from "../components/common/GlassCard";
 import styles from "./BoardPage.module.scss";
 
+// Union of both workflows: each card only ever lands on its own release column.
 const PHASE1_COLUMNS: RequestStatus[] = [
-  "Draft",
-  "Budgeting",
-  "BudgetReview",
+  "InDelineation",
   "Submitted",
   "Approved",
   "Rejected",
+  "ReleasedForFabrication",
+  "ReleasedForProcurement",
 ];
 
 export const BudgetingBoardPage: React.FC = () => {

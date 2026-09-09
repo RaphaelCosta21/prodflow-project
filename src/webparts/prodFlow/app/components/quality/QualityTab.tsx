@@ -20,7 +20,7 @@ const QualityRow: React.FC<IRowProps> = ({ fid, subItem }) => {
   const certificates = subItem.certificates ?? [];
 
   const commit = (changes: Partial<ISubItem>): void =>
-    update.mutate({ subItemId: subItem.id, changes });
+    update.mutate({ subItemId: subItem.id, changes, by: user.displayName });
 
   const setCerts = (next: IMaterialCert[]): void =>
     commit({ certificates: next });

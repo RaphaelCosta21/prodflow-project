@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ISubItem } from "../../models";
 import { useFidsFull, usePatchSubItem } from "../../api/fids";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import {
   ICrossFidRow,
   flattenLeaves,
@@ -51,6 +52,7 @@ export const CrossFidView: React.FC<ICrossFidViewProps> = ({
   actions,
 }) => {
   const { data, isLoading, isError } = useFidsFull();
+  const user = useCurrentUser();
   const patchSubItem = usePatchSubItem();
   const [search, setSearch] = React.useState("");
 
@@ -78,6 +80,7 @@ export const CrossFidView: React.FC<ICrossFidViewProps> = ({
         fid: row.fid,
         subItemId: row.subItem.id,
         changes,
+        by: user.displayName,
       });
 
   return (

@@ -582,8 +582,8 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                 <div className={`${styles.callout} ${styles.span2}`}>
                   {isParts ? (
                     <span className={styles.calloutNote}>
-                      Partes e Peças não têm complexidade nem SLA de resposta —
-                      o prazo é definido pela Oceaneering.
+                      Partes e Peças não têm complexidade nem prazo de resposta
+                      — o prazo é definido pela Oceaneering.
                     </span>
                   ) : (
                     <>
@@ -597,7 +597,7 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                       </span>
                       <span className={styles.calloutDivider} />
                       <span className={styles.calloutItem}>
-                        <span className={styles.calloutLabel}>Prazo SLA</span>
+                        <span className={styles.calloutLabel}>Prazo</span>
                         <strong className={styles.calloutValue}>
                           {prazoDiasUteis} dias úteis
                         </strong>
@@ -661,8 +661,8 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                     </>
                   ) : (
                     <span className={styles.calloutNote}>
-                      Sem SLA de resposta para este tipo de orçamento — o prazo
-                      de envio é definido pela Oceaneering.
+                      Sem prazo de resposta para este tipo de orçamento — o
+                      prazo de envio é definido pela Oceaneering.
                     </span>
                   )}
                 </div>
@@ -729,11 +729,11 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                     value={complexidadeGeral}
                   />
                   <ReviewCell
-                    label="Prazo SLA"
+                    label="Prazo"
                     value={
                       prazoEnvio
                         ? `${prazoDiasUteis} dias úteis`
-                        : "Sem SLA de resposta"
+                        : "Sem prazo de resposta"
                     }
                   />
                 </div>

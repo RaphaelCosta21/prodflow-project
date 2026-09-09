@@ -103,6 +103,8 @@ export interface ISubItem {
   attendance: Attendance;
   complexity: Complexity;
   status: SubItemStatus;
+  /** Status to return to when leaving `OnHold`. */
+  resumeStatus?: SubItemStatus;
   statusHistory?: ISubItemStatusHistoryEntry[];
   delineation?: IDelineation;
   quotation?: IQuotation;

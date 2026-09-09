@@ -1,6 +1,9 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { IFabricationRequest } from "../models";
+import { IFabricationRequest, RequestStatus } from "../models";
+import { workflowOf } from "../config/workflows";
+import { IKpiDef, KPI_DEFINITIONS } from "../config/kpiDefinitions";
+import { useConfigStore } from "../stores/useConfigStore";
 import { useFidsFull } from "../api/fids";
 import { useChartTheme } from "../hooks/useChartTheme";
 import {
@@ -23,17 +26,26 @@ import BarChart from "../components/charts/BarChart";
 import FunnelChart from "../components/charts/FunnelChart";
 import styles from "./DashboardPage.module.scss";
 
-const PIPELINE = [
-  { status: "Budgeting", label: "Orçamentação" },
-  { status: "BudgetReview", label: "Revisão" },
-  { status: "Submitted", label: "Enviado" },
-  { status: "Approved", label: "Aprovado" },
-  { status: "InProduction", label: "Em produção" },
+// Funnel across both workflows: the release/execution stages merge the two tracks.
+const PIPELINE: { statuses: RequestStatus[]; label: string }[] = [
+  { statuses: ["InDelineation"], label: "Em delineamento" },
+  { statuses: ["Submitted"], label: "Enviado" },
+  { statuses: ["Approved"], label: "Aprovado" },
+  {
+    statuses: ["ReleasedForFabrication", "ReleasedForProcurement"],
+    label: "Liberado",
+  },
+  {
+    statuses: ["InFabrication", "InProcurement", "ExternalService"],
+    label: "Em execução",
+  },
+  { statuses: ["Delivered"], label: "Entregue" },
 ];
 
 export const DashboardPage: React.FC = () => {
   const { data, isLoading, isError } = useFidsFull();
   const chart = useChartTheme();
+  const config = useConfigStore((s) => s.config);
   const navigate = useNavigate();
   const requests: IFabricationRequest[] = React.useMemo(
     () => data ?? [],
@@ -97,9 +109,9 @@ export const DashboardPage: React.FC = () => {
   const pipeline = React.useMemo(
     () =>
       PIPELINE.map((p) => ({
-        id: p.status,
+        id: p.statuses[0],
         label: p.label,
-        value: requests.filter((r) => r.status === p.status).length,
+        value: requests.filter((r) => p.statuses.indexOf(r.status) >= 0).length,
       })),
     [requests],
   );
@@ -125,6 +137,28 @@ export const DashboardPage: React.FC = () => {
 
   const phase1 = requests.filter((r) => r.phase === 1).length;
   const phase2 = requests.filter((r) => r.phase === 2).length;
+  const partsCount = requests.filter(
+    (r) => workflowOf(r.tipoOrcamento) === "parts",
+  ).length;
+
+  const kpiTarget = (key: string): { value: number; def: IKpiDef } => {
+    const def = KPI_DEFINITIONS.filter((k) => k.key === key)[0];
+    return {
+      value: config?.kpiTargets?.[key] ?? def.defaultTarget,
+      def,
+    };
+  };
+
+  const targetSubtitle = (key: string, detail: string): string => {
+    const { value, def } = kpiTarget(key);
+    return `${detail} · meta ${def.unit === "BRL" ? formatCurrencyBRL(value) : `${value}${def.unit === "%" ? "%" : ` ${def.unit}`}`}`;
+  };
+
+  const targetAccent = (key: string, actual: number): string => {
+    const { value, def } = kpiTarget(key);
+    const met = def.lowerIsBetter ? actual <= value : actual >= value;
+    return met ? chart.success : chart.danger;
+  };
 
   return (
     <div className={styles.page}>
@@ -132,24 +166,33 @@ export const DashboardPage: React.FC = () => {
         <h1 className={styles.title}>Dashboard</h1>
         <span className={styles.welcome}>
           {requests.length} FIDs · {phase1} em orçamentação · {phase2} em
-          produção
+          execução · {partsCount} de partes e peças
         </span>
       </div>
 
       <div className={styles.kpiGrid}>
         <KPICard
-          label="SLA de orçamentos"
+          label="Prazo de orçamentos"
           value={formatPercentage(kpis.budget.ratio)}
-          subtitle={`${kpis.budget.onTime}/${kpis.budget.total} no prazo`}
+          subtitle={targetSubtitle(
+            "budgetSla",
+            `${kpis.budget.onTime}/${kpis.budget.total} no prazo`,
+          )}
           progress={kpis.budget.ratio}
-          accentColor={chart.accents[0]}
+          accentColor={targetAccent("budgetSla", kpis.budget.ratio * 100)}
         />
         <KPICard
-          label="SLA de fabricação"
+          label="Prazo de fabricação"
           value={formatPercentage(kpis.fab.ratio)}
-          subtitle={`${kpis.fab.onTime}/${kpis.fab.total} no prazo`}
+          subtitle={targetSubtitle(
+            "fabricationDeadline",
+            `${kpis.fab.onTime}/${kpis.fab.total} no prazo`,
+          )}
           progress={kpis.fab.ratio}
-          accentColor={chart.success}
+          accentColor={targetAccent(
+            "fabricationDeadline",
+            kpis.fab.ratio * 100,
+          )}
         />
         <KPICard
           label="Início interno × externo"
@@ -166,8 +209,14 @@ export const DashboardPage: React.FC = () => {
         <KPICard
           label="Exposição de multa (30%)"
           value={formatCurrencyBRL(kpis.totals.multaExposicao30)}
-          subtitle={`${kpis.overdue.length} FIDs em atraso`}
-          accentColor={chart.danger}
+          subtitle={targetSubtitle(
+            "penaltyExposure",
+            `${kpis.overdue.length} FIDs em atraso`,
+          )}
+          accentColor={targetAccent(
+            "penaltyExposure",
+            kpis.totals.multaExposicao30,
+          )}
         />
       </div>
 
@@ -205,7 +254,7 @@ export const DashboardPage: React.FC = () => {
         {kpis.overdue.length === 0 ? (
           <EmptyState
             title="Nenhum atraso"
-            description="Todos os orçamentos estão dentro do prazo de SLA."
+            description="Todos os orçamentos estão dentro do prazo."
           />
         ) : (
           <ul className={styles.alertList}>

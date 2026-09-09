@@ -40,6 +40,7 @@ export class ProvisioningService {
     await ProvisioningService.ensureText(list, f.phase);
     await ProvisioningService.ensureText(list, f.status);
     await ProvisioningService.ensureNumber(list, f.year);
+    await ProvisioningService.ensureText(list, f.budgetType);
     await ProvisioningService.ensureNote(list, f.jsonData);
   }
 
@@ -50,7 +51,7 @@ export class ProvisioningService {
     const c = SP_CONFIG.config;
     const ensure = await SPService.sp.web.lists.ensure(
       SP_CONFIG.lists.config,
-      "ProdFlow — configuração, SLA, feriados, membros, contador do FID",
+      "ProdFlow — configuração, prazos, feriados, membros, contador do FID",
       100,
     );
     (ensure.created ? created : existing).push(SP_CONFIG.lists.config);

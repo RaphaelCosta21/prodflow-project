@@ -17,9 +17,9 @@ type BarcodeDetectorCtor = new (options?: {
   formats?: string[];
 }) => IBarcodeDetectorLike;
 
-// Accepts a full QR URL (…#/fid/FID0000001) or a bare FID typed by hand.
+// Accepts a full QR URL (…#/fid/FID00001) or a bare FID typed by hand.
 function extractFid(raw: string): string | undefined {
-  const match = /FID\d{7}/i.exec(raw);
+  const match = /FID\d{5}/i.exec(raw);
   return match ? match[0].toUpperCase() : undefined;
 }
 
@@ -156,7 +156,7 @@ export const MobileScanPage: React.FC = () => {
         <div className={styles.manualRow}>
           <Input
             value={manual}
-            placeholder="FID0000001"
+            placeholder="FID00001"
             onChange={(_, d) => setManual(d.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") open(manual);

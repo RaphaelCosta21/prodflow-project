@@ -22,6 +22,7 @@ export const SP_CONFIG = {
     phase: "Phase",
     status: "Status",
     year: "Year",
+    budgetType: "BudgetType",
     jsonData: "jsondata",
   },
   // prodflow-config generic columns + the atomic FID counter key.

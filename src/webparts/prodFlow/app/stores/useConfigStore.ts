@@ -21,8 +21,10 @@ export interface IAppConfig {
   slaMatrix: ISlaMatrix;
   holidays: string[]; // ISO dates (YYYY-MM-DD)
   budgetTypes: string[]; // opções de "Tipo de Orçamento" (as fixas sempre entram)
-  statusColors: { [status: string]: string };
+  /** Keys are namespaced: `request:<Status>`, `subitem:<Status>`, `phase:<flow>:<n>`. */
+  statusColors: { [key: string]: string };
   teamColors: { [team: string]: string };
+  kpiTargets: { [kpiKey: string]: number };
   defaultTheme: "light" | "dark";
   superAdminEmails: string[];
   accessLevels: {

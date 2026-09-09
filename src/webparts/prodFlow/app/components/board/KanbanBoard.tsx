@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { IFabricationRequest, RequestStatus } from "../../models";
 import { REQUEST_STATUS_MAP } from "../../config/statuses";
+import { workflowOf } from "../../config/workflows";
 import { canTransition } from "../../utils/statusHelpers";
 import { useMoveFidStatus } from "../../api/fids";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -66,15 +67,20 @@ const Card: React.FC<ICardProps> = ({ request, onOpen }) => {
 const Column: React.FC<{
   status: RequestStatus;
   requests: IFabricationRequest[];
-  activeStatus?: RequestStatus;
+  active?: IFabricationRequest;
   onOpen: (fid: string) => void;
-}> = ({ status, requests, activeStatus, onOpen }) => {
+}> = ({ status, requests, active, onOpen }) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const def = REQUEST_STATUS_MAP[status];
   const allowed =
-    activeStatus === undefined ||
-    activeStatus === status ||
-    canTransition(activeStatus, status);
+    active === undefined ||
+    active.status === status ||
+    canTransition(
+      active.status,
+      status,
+      workflowOf(active.tipoOrcamento),
+      active.resumeStatus,
+    );
 
   return (
     <div
@@ -82,7 +88,7 @@ const Column: React.FC<{
       className={[
         styles.column,
         isOver && allowed ? styles.over : "",
-        activeStatus && !allowed ? styles.blocked : "",
+        active && !allowed ? styles.blocked : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -127,7 +133,14 @@ export const KanbanBoard: React.FC<IKanbanBoardProps> = ({
     const to = String(e.over.id) as RequestStatus;
     const current = requests.filter((r) => r.fid === fid)[0];
     if (!current || current.status === to) return;
-    if (!canTransition(current.status, to)) {
+    if (
+      !canTransition(
+        current.status,
+        to,
+        workflowOf(current.tipoOrcamento),
+        current.resumeStatus,
+      )
+    ) {
       addToast(
         `Transição inválida: ${REQUEST_STATUS_MAP[current.status].label} → ${REQUEST_STATUS_MAP[to].label}.`,
         "warning",
@@ -157,7 +170,7 @@ export const KanbanBoard: React.FC<IKanbanBoardProps> = ({
           <Column
             key={status}
             status={status}
-            activeStatus={active?.status}
+            active={active}
             requests={requests.filter((r) => r.status === status)}
             onOpen={(fid) => navigate(fidDetailPath(fid))}
           />

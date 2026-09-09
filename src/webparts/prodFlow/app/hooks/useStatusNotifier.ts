@@ -8,8 +8,9 @@ const STATUS_EVENT: { [k: string]: NotificationType } = {
   Submitted: "BudgetSubmitted",
   Approved: "BudgetApproved",
   Rejected: "BudgetRejected",
-  ReleasedForProduction: "ReleasedForProduction",
-  Completed: "FidCompleted",
+  ReleasedForFabrication: "ReleasedForProduction",
+  ReleasedForProcurement: "ReleasedForProduction",
+  Delivered: "FidCompleted",
 };
 
 export interface IStatusNotifier {

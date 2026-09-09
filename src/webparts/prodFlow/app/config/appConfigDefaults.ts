@@ -1,4 +1,5 @@
 import { IAppConfig } from "../stores/useConfigStore";
+import { DEFAULT_KPI_TARGETS } from "./kpiDefinitions";
 
 // Owners that always keep admin rights, even if prodflow-config is emptied or misconfigured.
 // This is the lockout guard — the stored superAdminEmails are merged on top of it.
@@ -34,6 +35,7 @@ export const DEFAULT_APP_CONFIG: IAppConfig = {
   budgetTypes: FIXED_BUDGET_TYPES,
   statusColors: {},
   teamColors: {},
+  kpiTargets: DEFAULT_KPI_TARGETS,
   defaultTheme: "light",
   superAdminEmails: BUILT_IN_SUPER_ADMINS,
   accessLevels: {
@@ -96,8 +98,8 @@ export const NOTIFICATION_EVENTS: { key: string; label: string }[] = [
   { key: "BudgetSubmitted", label: "Orçamento enviado" },
   { key: "BudgetApproved", label: "Orçamento aprovado" },
   { key: "BudgetRejected", label: "Orçamento reprovado" },
-  { key: "SlaOverdue", label: "SLA estourado" },
-  { key: "ReleasedForProduction", label: "Liberado p/ produção" },
+  { key: "SlaOverdue", label: "Prazo estourado" },
+  { key: "ReleasedForProduction", label: "Liberado p/ fabricação ou compras" },
   { key: "SubItemCompleted", label: "Sub-item concluído" },
-  { key: "FidCompleted", label: "FID concluído" },
+  { key: "FidCompleted", label: "FID entregue" },
 ];

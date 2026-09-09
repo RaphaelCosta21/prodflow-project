@@ -6,6 +6,7 @@ import GlassCard from "../components/common/GlassCard";
 import DataTable, { IDataTableColumn } from "../components/common/DataTable";
 import StatusBadge from "../components/common/StatusBadge";
 import PhaseBadge from "../components/common/PhaseBadge";
+import { workflowOf } from "../config/workflows";
 import EmptyState from "../components/common/EmptyState";
 import SkeletonLoader from "../components/common/SkeletonLoader";
 import { fidDetailPath } from "../config/routes";
@@ -25,7 +26,9 @@ export const RequestsPage: React.FC = () => {
     {
       key: "phase",
       header: "Fase",
-      render: (r) => <PhaseBadge phase={r.phase} />,
+      render: (r) => (
+        <PhaseBadge phase={r.phase} flow={workflowOf(r.tipoOrcamento)} />
+      ),
     },
     {
       key: "status",

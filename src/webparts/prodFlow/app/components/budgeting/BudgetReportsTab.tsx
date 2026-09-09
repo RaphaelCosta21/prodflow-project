@@ -14,6 +14,7 @@ import { delineationToBudget } from "../../utils/delineationToBudget";
 import { derivePartsBudget, makeItems } from "../../utils/partsBudgetBuilder";
 import { exportPartsBudgetDoc } from "../../utils/exportPartsBudgetDoc";
 import { formatCurrencyBRL } from "../../utils/formatters";
+import { isSubItemCosted } from "../../config/workflows";
 import GlassCard from "../common/GlassCard";
 import EmptyState from "../common/EmptyState";
 import FabricationBudgetMask from "./FabricationBudgetMask";
@@ -101,7 +102,7 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
         const ready =
           item.makeSite === "InHouse"
             ? !!item.delineation?.concluido
-            : item.status === "Costed";
+            : isSubItemCosted(item.status);
         const total = fabricationTotal(data, item);
         const isOpen = openMask === item.id;
         return (

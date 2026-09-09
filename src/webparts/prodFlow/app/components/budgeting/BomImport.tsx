@@ -1,6 +1,9 @@
 import * as React from "react";
 import { Button } from "@fluentui/react-components";
-import { ArrowUpload24Regular } from "@fluentui/react-icons";
+import {
+  ArrowUpload24Regular,
+  AddCircle24Regular,
+} from "@fluentui/react-icons";
 import { Attendance } from "../../models";
 import { BomImportService } from "../../services/BomImportService";
 import { useImportBom } from "../../api/fids";
@@ -10,10 +13,18 @@ import styles from "./BomImport.module.scss";
 export interface IBomImportProps {
   fid: string;
   attendance: Attendance;
+  canEdit?: boolean;
+  /** Adds a blank root BOM line inline (dynamic building). */
+  onAddItem?: () => void;
 }
 
-// Uploads a Windchill CSV, parses it locally, then persists the sub-items as one section update.
-export const BomImport: React.FC<IBomImportProps> = ({ fid, attendance }) => {
+// Uploads a BOM CSV, or lets the user start building the BOM by hand (via onAddItem).
+export const BomImport: React.FC<IBomImportProps> = ({
+  fid,
+  attendance,
+  canEdit = true,
+  onAddItem,
+}) => {
   const importBom = useImportBom(fid);
   const addToast = useUIStore((s) => s.addToast);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -22,13 +33,13 @@ export const BomImport: React.FC<IBomImportProps> = ({ fid, attendance }) => {
     const reader = new FileReader();
     reader.onload = (): void => {
       try {
-        const subItems = BomImportService.fromCsv(
+        const parsed = BomImportService.fromCsv(
           String(reader.result ?? ""),
           attendance,
         );
-        importBom.mutate(subItems, {
+        importBom.mutate(parsed, {
           onSuccess: () =>
-            addToast(`${subItems.length} linhas da BOM importadas.`, "success"),
+            addToast(`${parsed.length} linhas da BOM importadas.`, "success"),
           onError: (e) =>
             addToast(`Erro ao importar BOM: ${String(e)}`, "error"),
         });
@@ -56,10 +67,20 @@ export const BomImport: React.FC<IBomImportProps> = ({ fid, attendance }) => {
         appearance="primary"
         icon={<ArrowUpload24Regular />}
         onClick={() => inputRef.current?.click()}
-        disabled={importBom.isLoading}
+        disabled={!canEdit || importBom.isLoading}
       >
         Importar BOM (CSV)
       </Button>
+      {onAddItem && (
+        <Button
+          appearance="secondary"
+          icon={<AddCircle24Regular />}
+          disabled={!canEdit}
+          onClick={onAddItem}
+        >
+          Adicionar item
+        </Button>
+      )}
     </div>
   );
 };

@@ -1,23 +1,26 @@
-import { RequestStatus } from "../models";
+import { RequestStatus, Strategy } from "../models";
 import { TeamKey } from "./teams";
 
-// Quem pode mover cada status (§4 do plano de projeto). Admin ignora esta matriz.
+// Planejamento/Projetos comandam a fase e o status do FID; admin ignora esta matriz.
+const FID_OWNERS: TeamKey[] = ["planning", "projects"];
+
 export const REQUEST_STATUS_OWNERS: Record<RequestStatus, TeamKey[]> = {
-  Draft: ["projects"],
-  Budgeting: ["projects", "planning"],
-  BudgetReview: ["planning"],
-  Submitted: ["projects"],
-  Approved: ["projects"],
-  Rejected: ["projects"],
-  ReleasedForProduction: ["projects", "planning"],
-  InProduction: ["planning", "workshop"],
-  FinalInspection: ["quality"],
-  Delivered: ["serviceExcellence", "warehouse", "planning"],
-  Completed: ["projects"],
-  Closed: ["projects"],
-  OnHold: ["projects", "planning"],
-  Cancelled: ["projects"],
+  InDelineation: FID_OWNERS,
+  Submitted: FID_OWNERS,
+  Approved: FID_OWNERS,
+  Rejected: FID_OWNERS,
+  ReleasedForFabrication: FID_OWNERS,
+  ReleasedForProcurement: FID_OWNERS,
+  InFabrication: FID_OWNERS,
+  InProcurement: FID_OWNERS,
+  ExternalService: FID_OWNERS,
+  Delivered: FID_OWNERS,
+  OnHold: FID_OWNERS,
+  Cancelled: FID_OWNERS,
 };
+
+const BUY_OWNERS: TeamKey[] = ["purchasing", "scm"];
+const MAKE_OWNERS: TeamKey[] = ["planning", "industrialEngineering"];
 
 export type SubItemAction =
   | "start"
@@ -38,4 +41,11 @@ export const SUBITEM_ACTION_OWNERS: Record<SubItemAction, TeamKey[]> = {
 
 export function ownersOf(status: RequestStatus): TeamKey[] {
   return REQUEST_STATUS_OWNERS[status] ?? [];
+}
+
+/** Sub-item status is driven by Compras when the line is bought, by Planejamento/Eng. Ind. when made. */
+export function subItemOwnersOf(strategy?: Strategy): TeamKey[] {
+  if (strategy === "Buy") return BUY_OWNERS;
+  if (strategy === "Make") return MAKE_OWNERS;
+  return [];
 }

@@ -51,7 +51,11 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
   const drawings = subItem.drawings ?? [];
 
   const persist = (next: IAttachmentRef[]): void => {
-    update.mutate({ subItemId: subItem.id, changes: { drawings: next } });
+    update.mutate({
+      subItemId: subItem.id,
+      changes: { drawings: next },
+      by: user.displayName,
+    });
   };
 
   const onPick = async (files: FileList | null): Promise<void> => {

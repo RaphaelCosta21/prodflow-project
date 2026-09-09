@@ -4,7 +4,8 @@ import { Button } from "@fluentui/react-components";
 import { ArrowLeft20Regular } from "@fluentui/react-icons";
 import { IFabricationRequest, ISubItem } from "../models";
 import { useFid } from "../api/fids";
-import { FID_NAV_GROUPS, FidTabKey } from "../config/fidDetailNav";
+import { fidNavGroupsFor, FidTabKey } from "../config/fidDetailNav";
+import { workflowOf } from "../config/workflows";
 import GlassCard from "../components/common/GlassCard";
 import SkeletonLoader from "../components/common/SkeletonLoader";
 import EmptyState from "../components/common/EmptyState";
@@ -50,7 +51,7 @@ const OverviewTab: React.FC<{ data: IFabricationRequest }> = ({ data }) => (
       <InfoRow label="Tipo de Orçamento" value={data.tipoOrcamento} />
       <InfoRow label="Descrição" value={data.descricao} />
     </GlassCard>
-    <GlassCard title="Complexidade & SLA">
+    <GlassCard title="Complexidade & Prazo">
       <InfoRow label="Usinagem" value={data.complexidadeUsinagem} />
       <InfoRow
         label="Caldeiraria/Soldagem"
@@ -59,11 +60,11 @@ const OverviewTab: React.FC<{ data: IFabricationRequest }> = ({ data }) => (
       <InfoRow label="Geral" value={data.complexidadeGeral} />
       <InfoRow label="Atendimento" value={data.atendimento} />
       <InfoRow
-        label="Prazo SLA (dias úteis)"
+        label="Prazo (dias úteis)"
         value={String(data.dates.prazoDiasUteis ?? "—")}
       />
       <InfoRow
-        label="Prazo p/ envio"
+        label="Prazo p/ envio do Orçamento"
         value={formatDate(data.dates.prazoEnvioPetrobras)}
       />
     </GlassCard>
@@ -106,11 +107,13 @@ export const FidDetailPage: React.FC = () => {
 
   const groups = React.useMemo(() => {
     const inPhase2 = (data?.phase ?? 1) >= 2;
-    return FID_NAV_GROUPS.map((g) => ({
-      ...g,
-      items: g.items.filter((i) => !i.phase2Only || inPhase2),
-    })).filter((g) => g.items.length > 0);
-  }, [data?.phase]);
+    return fidNavGroupsFor(workflowOf(data?.tipoOrcamento))
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((i) => !i.phase2Only || inPhase2),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [data?.phase, data?.tipoOrcamento]);
 
   const badges = React.useMemo<Partial<Record<FidTabKey, string>>>(() => {
     const subItems = data?.subItems;
@@ -118,8 +121,8 @@ export const FidDetailPage: React.FC = () => {
     const count = (fn: (s: ISubItem) => boolean): number =>
       subItems.filter(fn).length;
     const undefinedStrategy = count((s) => !s.strategy);
-    const pendingDelineation = count((s) => s.status === "WaitingDelineation");
-    const pendingQuotation = count((s) => s.status === "WaitingQuotation");
+    const pendingDelineation = count((s) => s.status === "FabDelineation");
+    const pendingQuotation = count((s) => s.status === "InQuotation");
     return {
       subitems: undefinedStrategy ? String(undefinedStrategy) : undefined,
       delineation: pendingDelineation ? String(pendingDelineation) : undefined,
@@ -178,14 +181,33 @@ export const FidDetailPage: React.FC = () => {
             </span>
             <span className={styles.heroSep}>|</span>
             <span>
-              Prazo p/ envio {formatDate(data.dates.prazoEnvioPetrobras)}
+              Tipo{" "}
+              <strong className={styles.strong}>{data.tipoOrcamento}</strong>
+            </span>
+            <span className={styles.heroSep}>|</span>
+            <span>
+              Prazo p/ envio do Orçamento{" "}
+              <strong className={styles.strong}>
+                {formatDate(data.dates.prazoEnvioPetrobras)}
+              </strong>
             </span>
           </div>
           <div className={styles.heroDesc}>{data.descricao}</div>
         </div>
+        <span className={styles.heroArt} aria-hidden="true" />
         <div className={styles.heroBadges}>
-          <PhaseBadge phase={data.phase} />
-          <StatusBadge kind="request" status={data.status} />
+          <div className={styles.badgeGroup}>
+            <span className={styles.badgeCaption}>Fase</span>
+            <PhaseBadge
+              phase={data.phase}
+              flow={workflowOf(data.tipoOrcamento)}
+            />
+          </div>
+          <span className={styles.badgeDivider} aria-hidden="true" />
+          <div className={styles.badgeGroup}>
+            <span className={styles.badgeCaption}>Status</span>
+            <StatusBadge kind="request" status={data.status} />
+          </div>
         </div>
       </header>
 

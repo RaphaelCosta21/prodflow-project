@@ -5,7 +5,8 @@ import {
   ChevronRight20Regular,
 } from "@fluentui/react-icons";
 import { IChecklistStep, IFabricationRequest, ISubItem } from "../../models";
-import { SUB_ITEM_STATUSES } from "../../config/statuses";
+import { SUB_ITEM_STATUS_MAP } from "../../config/statuses";
+import { allowedSubItemStatuses } from "../../config/workflows";
 import {
   FABRICATION_CHECKLIST,
   buildChecklist,
@@ -18,10 +19,6 @@ import EmptyState from "../common/EmptyState";
 import GlassCard from "../common/GlassCard";
 import styles from "./ProductionTab.module.scss";
 
-const PHASE2_STATUSES = SUB_ITEM_STATUSES.filter(
-  (s) => s.phase === 2 || s.key === "OnHold" || s.key === "Cancelled",
-);
-
 interface IRowProps {
   fid: string;
   subItem: ISubItem;
@@ -31,6 +28,11 @@ const ProductionRow: React.FC<IRowProps> = ({ fid, subItem }) => {
   const user = useCurrentUser();
   const update = useUpdateSubItem(fid);
   const [expanded, setExpanded] = React.useState(false);
+  const statusOptions = allowedSubItemStatuses(
+    subItem.strategy,
+    subItem.makeSite,
+    2,
+  );
   const [draft, setDraft] = React.useState({
     rcOrSr: subItem.rcOrSr ?? "",
     poOrWo: subItem.poOrWo ?? "",
@@ -43,7 +45,7 @@ const ProductionRow: React.FC<IRowProps> = ({ fid, subItem }) => {
   const progress = checklistProgress(checklist);
 
   const commit = (changes: Partial<ISubItem>): void =>
-    update.mutate({ subItemId: subItem.id, changes });
+    update.mutate({ subItemId: subItem.id, changes, by: user.displayName });
 
   const commitDate = (field: keyof ISubItem, value: string): void =>
     commit({
@@ -121,16 +123,16 @@ const ProductionRow: React.FC<IRowProps> = ({ fid, subItem }) => {
         </div>
         <Dropdown
           size="small"
-          value={subItem.status}
+          value={SUB_ITEM_STATUS_MAP[subItem.status].label}
           selectedOptions={[subItem.status]}
           onOptionSelect={(_, d) => {
             if (d.optionValue)
               commit({ status: d.optionValue as ISubItem["status"] });
           }}
         >
-          {PHASE2_STATUSES.map((s) => (
-            <Option key={s.key} value={s.key}>
-              {s.label}
+          {statusOptions.map((s) => (
+            <Option key={s} value={s}>
+              {SUB_ITEM_STATUS_MAP[s].label}
             </Option>
           ))}
         </Dropdown>

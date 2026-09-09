@@ -1,38 +1,36 @@
-import { Phase, RequestStatus } from "../models";
+import { Phase, RequestStatus, WorkflowKind } from "../models";
 import { REQUEST_STATUSES } from "../config/statuses";
+import { requestTransitionsFor } from "../config/workflows";
 import { ownersOf } from "../config/statusOwners";
 import { TeamKey } from "../config/teams";
 
-// Allowed FID status transitions (§12.1). OnHold/Cancelled are reachable from any non-terminal state.
+// OnHold/Cancelled are reachable from any non-terminal state.
 const TRANSVERSAL: RequestStatus[] = ["OnHold", "Cancelled"];
 
-export const REQUEST_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
-  Draft: ["Budgeting"],
-  Budgeting: ["BudgetReview"],
-  BudgetReview: ["Submitted", "Budgeting"],
-  Submitted: ["Approved", "Rejected"],
-  Approved: ["ReleasedForProduction"],
-  Rejected: ["Budgeting"],
-  ReleasedForProduction: ["InProduction"],
-  InProduction: ["FinalInspection"],
-  FinalInspection: ["Delivered"],
-  Delivered: ["Completed"],
-  Completed: ["Closed"],
-  Closed: [],
-  OnHold: [],
-  Cancelled: [],
-};
+const TERMINAL: RequestStatus[] = ["Delivered", "Cancelled"];
 
-const TERMINAL: RequestStatus[] = ["Closed", "Cancelled"];
-
-export function nextRequestStatuses(from: RequestStatus): RequestStatus[] {
-  const base = REQUEST_TRANSITIONS[from] ?? [];
-  if (TERMINAL.indexOf(from) >= 0 || from === "OnHold") return base;
+/** Allowed moves out of `from`. Resuming from OnHold goes back to the exact stored status. */
+export function nextRequestStatuses(
+  from: RequestStatus,
+  flow: WorkflowKind,
+  resumeStatus?: RequestStatus,
+): RequestStatus[] {
+  if (TERMINAL.indexOf(from) >= 0) return [];
+  if (from === "OnHold") {
+    const resume = resumeStatus ? [resumeStatus] : [];
+    return resume.concat("Cancelled");
+  }
+  const base = requestTransitionsFor(flow)[from] ?? [];
   return base.concat(TRANSVERSAL.filter((s) => s !== from));
 }
 
-export function canTransition(from: RequestStatus, to: RequestStatus): boolean {
-  return nextRequestStatuses(from).indexOf(to) >= 0;
+export function canTransition(
+  from: RequestStatus,
+  to: RequestStatus,
+  flow: WorkflowKind,
+  resumeStatus?: RequestStatus,
+): boolean {
+  return nextRequestStatuses(from, flow, resumeStatus).indexOf(to) >= 0;
 }
 
 export function isTerminalStatus(status: RequestStatus): boolean {

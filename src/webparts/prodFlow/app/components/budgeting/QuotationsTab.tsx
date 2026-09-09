@@ -366,6 +366,7 @@ const PackageForm: React.FC<{
 
 export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
   const { teams, isAdmin } = useAccessLevel();
+  const user = useCurrentUser();
   const addToast = useUIStore((s) => s.addToast);
   const removePackage = useDeleteQuotationPackage(fid);
   const selectQuotation = useSelectQuotation(fid);
@@ -458,10 +459,13 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
                       appearance="subtle"
                       icon={<Delete16Regular />}
                       onClick={() =>
-                        removePackage.mutate(pkg.id, {
-                          onSuccess: () =>
-                            addToast("Cotação removida.", "success"),
-                        })
+                        removePackage.mutate(
+                          { quotationId: pkg.id, by: user.displayName },
+                          {
+                            onSuccess: () =>
+                              addToast("Cotação removida.", "success"),
+                          },
+                        )
                       }
                     >
                       Remover
@@ -519,6 +523,7 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
                         selectQuotation.mutate({
                           subItemId: item.id,
                           quotationId: d.value,
+                          by: user.displayName,
                         })
                       }
                     >

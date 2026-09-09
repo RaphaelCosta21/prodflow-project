@@ -6,7 +6,8 @@ import {
   ArrowSwap20Regular,
 } from "@fluentui/react-icons";
 import { IFabricationRequest, Phase } from "../../models";
-import { PHASES } from "../../config/phases";
+import { phasesFor } from "../../config/phases";
+import { workflowOf } from "../../config/workflows";
 import { useStatusColors } from "../../hooks/useStatusColors";
 import { useLiveElapsed } from "../../hooks/useLiveElapsed";
 import { isTerminalStatus } from "../../utils/statusHelpers";
@@ -27,6 +28,8 @@ export interface ITimelineTabProps {
 
 export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
   const colors = useStatusColors();
+  const flow = workflowOf(data.tipoOrcamento);
+  const phases = phasesFor(flow);
   const frozen = isTerminalStatus(data.status);
   const frozenTime = frozen
     ? new Date(
@@ -61,7 +64,7 @@ export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
     return map;
   }, [statusHistory]);
 
-  const currentPhaseIndex = PHASES.findIndex((p) => p.phase === data.phase);
+  const currentPhaseIndex = phases.findIndex((p) => p.phase === data.phase);
 
   const milestones = [
     { label: "Recebimento da demanda", value: data.dates.recebimentoDemanda },
@@ -69,7 +72,10 @@ export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
       label: "Solicitação de orçamento",
       value: data.dates.solicitacaoOrcamento,
     },
-    { label: "Prazo p/ envio (SLA)", value: data.dates.prazoEnvioPetrobras },
+    {
+      label: "Prazo p/ envio do Orçamento",
+      value: data.dates.prazoEnvioPetrobras,
+    },
     { label: "Retorno do orçamento", value: data.dates.retornoOrcamento },
     { label: "Envio à Petrobras", value: data.dates.dataEnvioPetrobras },
     { label: "Aprovação Petrobras", value: data.dates.dataAprovacaoPetrobras },
@@ -94,7 +100,7 @@ export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
           <div className={styles.summaryBody}>
             <span className={styles.summaryLabel}>Fase atual</span>
             <span className={styles.summaryValue}>
-              {colors.phase(data.phase).label}
+              {colors.phase(data.phase, flow).label}
             </span>
             {livePhase && (
               <span className={styles.live}>
@@ -153,7 +159,7 @@ export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
           />
         ) : (
           <div className={styles.flow}>
-            {PHASES.map((phase, idx) => {
+            {phases.map((phase, idx) => {
               const entry = phaseHistory.filter(
                 (e) => e.phase === phase.phase,
               )[0];
@@ -214,8 +220,11 @@ export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
                               </span>
                             </div>
                             <span className={styles.statusMeta}>
+                              {s.from &&
+                                `${colors.requestStatus(s.from).label} → `}
                               {s.actor} · {formatDateTime(s.start)}
                               {s.end && ` → ${formatDateTime(s.end)}`}
+                              {s.note && ` · ${s.note}`}
                             </span>
                           </div>
                         </div>

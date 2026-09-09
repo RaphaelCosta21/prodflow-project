@@ -26,8 +26,11 @@ const isBuyOrSubcon = (r: ICrossFidRow): boolean =>
 
 const isInHouse = (r: ICrossFidRow): boolean => r.strategyKey === "makeInHouse";
 
+// Released for phase 2 (or already there) — both workflows.
 const approved = (r: ICrossFidRow): boolean =>
-  r.request.phase === 2 || r.request.status === "Approved";
+  r.request.phase === 2 ||
+  r.request.status === "ReleasedForFabrication" ||
+  r.request.status === "ReleasedForProcurement";
 
 const identityCols: ICrossFidViewProps["columns"] = [
   {

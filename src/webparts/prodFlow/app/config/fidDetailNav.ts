@@ -15,6 +15,7 @@ import {
   type FluentIcon,
 } from "@fluentui/react-icons";
 import { TeamKey } from "./teams";
+import { WorkflowKind } from "../models";
 
 export type FidTabKey =
   | "overview"
@@ -127,3 +128,21 @@ export const FID_NAV_GROUPS: IFidNavGroup[] = [
     ],
   },
 ];
+
+// Phase 2 is fabrication for one workflow and procurement for the other.
+export function fidNavGroupsFor(flow: WorkflowKind): IFidNavGroup[] {
+  if (flow !== "parts") return FID_NAV_GROUPS;
+  return FID_NAV_GROUPS.map((g) =>
+    g.key === "production"
+      ? {
+          ...g,
+          label: "Aquisição",
+          items: g.items.map((i) =>
+            i.key === "production"
+              ? { ...i, label: "Aquisição", ownerTeam: "purchasing" as TeamKey }
+              : i,
+          ),
+        }
+      : g,
+  );
+}

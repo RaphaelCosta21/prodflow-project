@@ -1,6 +1,7 @@
 import { SPService } from "./SPService";
 import { IList } from "@pnp/sp/lists";
 import { SP_CONFIG } from "../config/sharepoint.config";
+import { FABRICATION_BUDGET_TYPE } from "../config/appConfigDefaults";
 import {
   IFabricationRequest,
   IFabricationRequestHeader,
@@ -14,7 +15,7 @@ const MAX_RETRIES = 5;
 
 function formatFid(n: number): string {
   let s = String(n);
-  while (s.length < 7) s = `0${s}`;
+  while (s.length < 5) s = `0${s}`;
   return `FID${s}`;
 }
 
@@ -37,14 +38,15 @@ export class RequestService {
   public static async getAllHeaders(): Promise<IFabricationRequestHeader[]> {
     const f = SP_CONFIG.fields;
     const items = await RequestService.list.items
-      .select(f.fid, f.os, f.phase, f.status, f.year)
+      .select(f.fid, f.os, f.phase, f.status, f.year, f.budgetType)
       .top(5000)();
     return items.map((it: Record<string, unknown>) => ({
       fid: String(it[f.fid] ?? ""),
       osNumber: String(it[f.os] ?? ""),
       phase: (Number(it[f.phase]) as Phase) || 1,
-      status: String(it[f.status] ?? "Draft") as RequestStatus,
+      status: String(it[f.status] ?? "InDelineation") as RequestStatus,
       year: Number(it[f.year]) || new Date().getFullYear(),
+      tipoOrcamento: String(it[f.budgetType] ?? FABRICATION_BUDGET_TYPE),
     }));
   }
 
@@ -110,6 +112,7 @@ export class RequestService {
           {
             [f.status]: found.data.status,
             [f.phase]: String(found.data.phase),
+            [f.budgetType]: found.data.tipoOrcamento,
             [f.jsonData]: JSON.stringify(found.data),
           },
           found.etag,
@@ -136,6 +139,7 @@ export class RequestService {
       [f.phase]: String(full.phase),
       [f.status]: full.status,
       [f.year]: new Date().getFullYear(),
+      [f.budgetType]: full.tipoOrcamento,
       [f.jsonData]: JSON.stringify(full),
     });
     return full;

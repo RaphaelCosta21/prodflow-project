@@ -12,10 +12,9 @@
 .head,
 .row {
   display: grid;
-  grid-template-columns: 40px minmax(220px, 2.2fr) 90px 200px 110px minmax(
-      160px,
-      1fr
-    );
+  grid-template-columns:
+    34px minmax(180px, 2fr) 76px minmax(206px, 1.5fr) 92px minmax(120px, 1fr)
+    40px;
   gap: 12px;
   align-items: center;
 }
@@ -128,6 +127,79 @@
   min-width: 0;
 }
 
+.strategy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg-elevated);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--primary-accent);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.chipActive {
+  color: #fff;
+  border-color: transparent;
+}
+
+.chipBuy.chipActive {
+  background: var(--info, #0072ce);
+}
+
+.chipMake.chipActive {
+  background: var(--success, #16a34a);
+}
+
+.chipNa.chipActive {
+  background: var(--text-muted);
+}
+
+.identityEdit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.qtyInput {
+  width: 64px;
+}
+
+.drawings {
+  display: flex;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .status {
   display: flex;
   align-items: center;
@@ -146,20 +218,25 @@
   letter-spacing: 0.03em;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 720px) {
   .head {
     display: none;
   }
 
   .row {
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr);
     row-gap: 8px;
   }
 
   .qtd,
   .strategy,
   .drawings,
-  .status {
+  .status,
+  .actions {
     grid-column: 2;
+  }
+
+  .actions {
+    justify-content: flex-start;
   }
 }

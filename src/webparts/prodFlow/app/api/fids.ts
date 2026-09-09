@@ -15,14 +15,24 @@ import {
   ISubItem,
   RequestStatus,
   SubItemStatus,
+  Strategy,
+  BuyType,
+  MakeSite,
 } from "../models";
 import { TeamKey } from "../config/teams";
 import { RequestService } from "../services/RequestService";
 import { BudgetService } from "../services/BudgetService";
 import { canTransition } from "../utils/statusHelpers";
 import {
-  pushStatusHistory,
-  pushSubItemStatusHistory,
+  executionStatusOf,
+  initialSubItemStatus,
+  isSubItemCosted,
+  workflowOf,
+} from "../config/workflows";
+import { subItemOwnersOf } from "../config/statusOwners";
+import {
+  recordStatusChange,
+  recordSubItemStatusChange,
 } from "../utils/historyHelpers";
 import { delineationToBudget } from "../utils/delineationToBudget";
 import { derivePartsBudget } from "../utils/partsBudgetBuilder";
@@ -76,6 +86,7 @@ export function useCreateFid(): UseMutationResult<
 interface IUpdateSubItemVars {
   subItemId: string;
   changes: Partial<ISubItem>;
+  by: string;
 }
 
 interface IUpdateSubItemContext {
@@ -95,11 +106,20 @@ export function useUpdateSubItem(
   return useMutation({
     mutationFn: (vars: IUpdateSubItemVars) =>
       RequestService.updateSection(fid, (draft) => {
-        const idx = draft.subItems.findIndex((s) => s.id === vars.subItemId);
-        if (idx >= 0) {
-          draft.subItems[idx] = { ...draft.subItems[idx], ...vars.changes };
-          recomputeFinancials(draft);
+        const item = draft.subItems.filter((s) => s.id === vars.subItemId)[0];
+        if (!item) return;
+        const { status, ...fields } = vars.changes;
+        Object.assign(item, fields);
+        if (status) {
+          recordSubItemStatusChange(
+            draft,
+            item,
+            status,
+            vars.by,
+            subItemOwnersOf(item.strategy)[0],
+          );
         }
+        recomputeFinancials(draft);
       }),
     onMutate: async (vars): Promise<IUpdateSubItemContext> => {
       await qc.cancelQueries({ queryKey: queryKeys.fid(fid) });
@@ -123,8 +143,83 @@ export function useUpdateSubItem(
   });
 }
 
-// Replaces the sub-item list (BOM import) as one section update.
-// Status stays untouched: every transition is a manual, team-owned action.
+interface IReplicateStrategyVars {
+  targetIds: string[];
+  by: string;
+  changes: { strategy: Strategy; buyType?: BuyType; makeSite?: MakeSite };
+}
+
+// Applies one strategy to a set of sub-items (children of a parent, or all descendants) in a
+// single section update — used by the "replicar estratégia" action on parent BOM lines.
+export function useReplicateStrategy(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IReplicateStrategyVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IReplicateStrategyVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const ids = new Set(vars.targetIds);
+        for (const item of draft.subItems) {
+          if (!ids.has(item.id)) continue;
+          item.strategy = vars.changes.strategy;
+          item.buyType = vars.changes.buyType;
+          item.makeSite = vars.changes.makeSite;
+          recordSubItemStatusChange(
+            draft,
+            item,
+            "NotStarted",
+            vars.by,
+            subItemOwnersOf(item.strategy)[0],
+          );
+        }
+        recomputeFinancials(draft);
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.fid(fid) }),
+  });
+}
+
+// Appends a manually-created BOM line (flat level/parentId) as one section update.
+export function useAddSubItem(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, ISubItem> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (subItem: ISubItem) =>
+      RequestService.updateSection(fid, (draft) => {
+        draft.subItems.push(subItem);
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.fid(fid) }),
+  });
+}
+
+// Removes a manually-built BOM line and every descendant below it, in one section update.
+export function useDeleteSubItem(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (subItemId: string) =>
+      RequestService.updateSection(fid, (draft) => {
+        const remove = new Set<string>([subItemId]);
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (const s of draft.subItems) {
+            if (s.parentId && remove.has(s.parentId) && !remove.has(s.id)) {
+              remove.add(s.id);
+              changed = true;
+            }
+          }
+        }
+        draft.subItems = draft.subItems.filter((s) => !remove.has(s.id));
+        recomputeFinancials(draft);
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.fid(fid) }),
+  });
+}
+
+// Replaces the sub-item list (BOM import) as one section update. Re-imported lines keep the
+// status and audit trail they already had; every transition stays a manual, team-owned action.
 export function useImportBom(
   fid: string,
 ): UseMutationResult<IFabricationRequest, unknown, ISubItem[]> {
@@ -132,7 +227,21 @@ export function useImportBom(
   return useMutation({
     mutationFn: (subItems: ISubItem[]) =>
       RequestService.updateSection(fid, (draft) => {
-        draft.subItems = subItems;
+        const previous = new Map(draft.subItems.map((s) => [s.pn, s]));
+        draft.subItems = subItems.map((s) => {
+          const old = previous.get(s.pn);
+          return old
+            ? {
+                ...s,
+                status: old.status,
+                resumeStatus: old.resumeStatus,
+                statusHistory: old.statusHistory,
+                startedAt: old.startedAt,
+                startedBy: old.startedBy,
+                ownerTeam: old.ownerTeam,
+              }
+            : s;
+        });
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.fid(fid) }),
   });
@@ -147,6 +256,46 @@ function invalidateFid(
   fid: string,
 ): () => Promise<void> {
   return () => qc.invalidateQueries({ queryKey: queryKeys.fid(fid) });
+}
+
+/**
+ * The one place a FID status moves: guards the transition against the workflow, stamps the
+ * milestone dates and hands the costed sub-items over to phase 2.
+ */
+function applyStatusTransition(
+  draft: IFabricationRequest,
+  to: RequestStatus,
+  by: string,
+  note?: string,
+  dateISO?: string,
+  signatureRef?: string,
+): void {
+  const flow = workflowOf(draft.tipoOrcamento);
+  if (!canTransition(draft.status, to, flow, draft.resumeStatus)) {
+    throw new Error(`Transição inválida: ${draft.status} → ${to}.`);
+  }
+  const when = dateISO ?? new Date().toISOString();
+  if (to === "Submitted") draft.dates.dataEnvioPetrobras = when;
+  if (to === "Approved") {
+    draft.dates.dataAprovacaoPetrobras = when;
+    draft.approval = { by, date: when, signatureRef };
+  }
+  recordStatusChange(draft, to, by, note, when);
+
+  if (to === executionStatusOf(flow)) {
+    for (const item of draft.subItems) {
+      if (!isSubItemCosted(item.status)) continue;
+      recordSubItemStatusChange(
+        draft,
+        item,
+        initialSubItemStatus(item.strategy, item.makeSite, 2),
+        by,
+        subItemOwnersOf(item.strategy)[0],
+        "Liberado para a fase 2",
+        when,
+      );
+    }
+  }
 }
 
 interface IStartSubItemsVars {
@@ -166,29 +315,20 @@ export function useStartSubItems(
         for (const id of vars.subItemIds) {
           const item = draft.subItems.filter((s) => s.id === id)[0];
           if (!item || !item.strategy || item.strategy === "NA") continue;
-          const inHouse =
-            item.strategy === "Make" && item.makeSite === "InHouse";
-          const to: SubItemStatus = inHouse
-            ? "WaitingDelineation"
-            : "WaitingQuotation";
-          const team: TeamKey = inHouse ? "industrialEngineering" : "scm";
-          item.statusHistory = pushSubItemStatusHistory(
+          const isMake = item.strategy === "Make";
+          const to: SubItemStatus = isMake ? "FabDelineation" : "InQuotation";
+          const team: TeamKey = isMake ? "industrialEngineering" : "scm";
+          item.startedAt = when;
+          item.startedBy = vars.by;
+          recordSubItemStatusChange(
+            draft,
             item,
             to,
             vars.by,
-            when,
             team,
+            isMake ? "Roteado p/ delineamento" : "Roteado p/ cotação",
+            when,
           );
-          item.status = to;
-          item.startedAt = when;
-          item.startedBy = vars.by;
-          item.ownerTeam = team;
-          draft.history.push({
-            ts: when,
-            by: vars.by,
-            type: "subitem:start",
-            message: `${item.pn} → ${inHouse ? "Delineamento" : "Cotação"}`,
-          });
         }
       }),
     onSuccess: invalidateFid(qc, fid),
@@ -217,14 +357,15 @@ export function useUpdateDelineation(
           item.delineation.concluido = true;
           item.delineation.concluidoPor = vars.by;
           item.delineation.concluidoEm = when;
-          item.statusHistory = pushSubItemStatusHistory(
+          recordSubItemStatusChange(
+            draft,
             item,
-            "Costed",
+            "Delineated",
             vars.by,
-            when,
             "industrialEngineering",
+            undefined,
+            when,
           );
-          item.status = "Costed";
         }
         item.fabricationBudget = BudgetService.recalcFabricationBudget(
           delineationToBudget(draft, item),
@@ -268,14 +409,15 @@ export function useUpsertQuotationPackage(
             const item = draft.subItems.filter((s) => s.id === id)[0];
             if (!item) continue;
             if (!item.selectedQuotationId) item.selectedQuotationId = saved.id;
-            item.statusHistory = pushSubItemStatusHistory(
+            recordSubItemStatusChange(
+              draft,
               item,
-              "Costed",
+              "Quoted",
               vars.by,
-              when,
               "scm",
+              `Cota\u00e7\u00e3o ${saved.supplier}`,
+              when,
             );
-            item.status = "Costed";
           }
         }
         draft.partsBudget = derivePartsBudget(draft);
@@ -291,22 +433,36 @@ export function useUpsertQuotationPackage(
   });
 }
 
+interface IDeleteQuotationVars {
+  quotationId: string;
+  by: string;
+}
+
 export function useDeleteQuotationPackage(
   fid: string,
-): UseMutationResult<IFabricationRequest, unknown, string> {
+): UseMutationResult<IFabricationRequest, unknown, IDeleteQuotationVars> {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (quotationId: string) =>
+    mutationFn: (vars: IDeleteQuotationVars) =>
       RequestService.updateSection(fid, (draft) => {
+        const removed = (draft.quotationPackages ?? []).filter(
+          (p) => p.id === vars.quotationId,
+        )[0];
         draft.quotationPackages = (draft.quotationPackages ?? []).filter(
-          (p) => p.id !== quotationId,
+          (p) => p.id !== vars.quotationId,
         );
         for (const s of draft.subItems) {
-          if (s.selectedQuotationId === quotationId)
+          if (s.selectedQuotationId === vars.quotationId)
             s.selectedQuotationId = undefined;
         }
         draft.partsBudget = derivePartsBudget(draft);
         recomputeFinancials(draft);
+        draft.history.push({
+          ts: new Date().toISOString(),
+          by: vars.by,
+          type: "quotation:delete",
+          message: `Cotação removida — ${removed?.supplier ?? vars.quotationId}`,
+        });
       }),
     onSuccess: invalidateFid(qc, fid),
   });
@@ -315,6 +471,7 @@ export function useDeleteQuotationPackage(
 interface ISelectQuotationVars {
   subItemId: string;
   quotationId: string;
+  by: string;
 }
 
 export function useSelectQuotation(
@@ -328,6 +485,12 @@ export function useSelectQuotation(
         if (item) item.selectedQuotationId = vars.quotationId;
         draft.partsBudget = derivePartsBudget(draft);
         recomputeFinancials(draft);
+        draft.history.push({
+          ts: new Date().toISOString(),
+          by: vars.by,
+          type: "quotation:select",
+          message: `Cotação selecionada — ${item?.pn ?? vars.subItemId}`,
+        });
       }),
     onSuccess: invalidateFid(qc, fid),
   });
@@ -381,6 +544,12 @@ export function useUpdatePartsBudget(
       RequestService.updateSection(fid, (draft) => {
         draft.partsBudget = vars.partsBudget;
         recomputeFinancials(draft);
+        draft.history.push({
+          ts: new Date().toISOString(),
+          by: vars.by,
+          type: "budget:parts",
+          message: "Orçamento de partes e peças salvo",
+        });
       }),
     onSuccess: invalidateFid(qc, fid),
   });
@@ -439,6 +608,7 @@ interface IPatchSubItemVars {
   fid: string;
   subItemId: string;
   changes: Partial<ISubItem>;
+  by: string;
 }
 
 // Cross-FID views edit sub-items from many FIDs, so the fid travels with the mutation.
@@ -451,9 +621,19 @@ export function usePatchSubItem(): UseMutationResult<
   return useMutation({
     mutationFn: (vars: IPatchSubItemVars) =>
       RequestService.updateSection(vars.fid, (draft) => {
-        const idx = draft.subItems.findIndex((s) => s.id === vars.subItemId);
-        if (idx < 0) return;
-        draft.subItems[idx] = { ...draft.subItems[idx], ...vars.changes };
+        const item = draft.subItems.filter((s) => s.id === vars.subItemId)[0];
+        if (!item) return;
+        const { status, ...fields } = vars.changes;
+        Object.assign(item, fields);
+        if (status) {
+          recordSubItemStatusChange(
+            draft,
+            item,
+            status,
+            vars.by,
+            subItemOwnersOf(item.strategy)[0],
+          );
+        }
         recomputeFinancials(draft);
       }),
     onSuccess: (_d, vars) =>
@@ -474,22 +654,7 @@ export function useMoveFidStatus(): UseMutationResult<
   return useMutation({
     mutationFn: (vars: IMoveFidVars) =>
       RequestService.updateSection(vars.fid, (draft) => {
-        if (!canTransition(draft.status, vars.to)) {
-          throw new Error(`Transição inválida: ${draft.status} → ${vars.to}.`);
-        }
-        const when = new Date().toISOString();
-        draft.status = vars.to;
-        if (vars.to === "Submitted") draft.dates.dataEnvioPetrobras = when;
-        if (vars.to === "Approved") {
-          draft.dates.dataAprovacaoPetrobras = when;
-          draft.approval = { by: vars.by, date: when };
-        }
-        draft.history.push({
-          ts: when,
-          by: vars.by,
-          type: `status:${vars.to}`,
-          message: `Status → ${vars.to} (board)`,
-        });
+        applyStatusTransition(draft, vars.to, vars.by, "movido no board");
       }),
     onSuccess: (_d, vars) =>
       Promise.all([
@@ -508,7 +673,7 @@ interface IUpdateStatusVars {
   dateISO?: string;
 }
 
-// Guarded status transition (§12.1) with side-effects (send date / approval) + history trail.
+// Guarded status transition with side-effects (send date / approval / phase-2 hand-off).
 export function useUpdateStatus(
   fid: string,
 ): UseMutationResult<
@@ -521,32 +686,27 @@ export function useUpdateStatus(
   return useMutation({
     mutationFn: (vars: IUpdateStatusVars) =>
       RequestService.updateSection(fid, (draft) => {
-        if (!canTransition(draft.status, vars.to)) {
-          throw new Error(`Transição inválida: ${draft.status} → ${vars.to}.`);
-        }
-        const when = vars.dateISO ?? new Date().toISOString();
-        draft.status = vars.to;
-        if (vars.to === "Submitted") draft.dates.dataEnvioPetrobras = when;
-        if (vars.to === "Approved") {
-          draft.dates.dataAprovacaoPetrobras = when;
-          draft.approval = {
-            by: vars.by,
-            date: when,
-            signatureRef: vars.signatureRef,
-          };
-        }
-        pushStatusHistory(draft, vars.to, vars.by, when);
-        draft.history.push({
-          ts: new Date().toISOString(),
-          by: vars.by,
-          type: `status:${vars.to}`,
-          message: vars.message ?? `Status → ${vars.to}`,
-        });
+        applyStatusTransition(
+          draft,
+          vars.to,
+          vars.by,
+          vars.message,
+          vars.dateISO,
+          vars.signatureRef,
+        );
       }),
     onMutate: async (vars): Promise<IMutationContext> => {
       await qc.cancelQueries({ queryKey: queryKeys.fid(fid) });
       const previous = qc.getQueryData<IFabricationRequest>(queryKeys.fid(fid));
-      if (previous && canTransition(previous.status, vars.to)) {
+      if (
+        previous &&
+        canTransition(
+          previous.status,
+          vars.to,
+          workflowOf(previous.tipoOrcamento),
+          previous.resumeStatus,
+        )
+      ) {
         qc.setQueryData(queryKeys.fid(fid), {
           ...previous,
           status: vars.to,

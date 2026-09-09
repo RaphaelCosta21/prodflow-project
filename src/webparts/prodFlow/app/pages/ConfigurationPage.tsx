@@ -4,10 +4,33 @@ import {
   Database24Regular,
   Add16Regular,
   Delete16Regular,
+  Alert24Regular,
+  CalendarLtr24Regular,
+  Clock24Regular,
+  DocumentBulletList24Regular,
+  Flowchart24Regular,
+  Money24Regular,
+  People24Regular,
+  ShieldKeyhole24Regular,
+  Target24Regular,
+  Dismiss20Regular,
+  ArrowReset20Regular,
 } from "@fluentui/react-icons";
-import { Attendance } from "../models";
+import { Attendance, Phase, RequestStatus, WorkflowKind } from "../models";
 import { TEAMS, TEAM_KEYS } from "../config/teams";
-import { REQUEST_STATUSES, SUB_ITEM_STATUSES } from "../config/statuses";
+import {
+  ISubItemStatusDef,
+  IStatusDef,
+  REQUEST_STATUSES,
+  SUB_ITEM_STATUSES,
+} from "../config/statuses";
+import { PHASES_BY_WORKFLOW } from "../config/phases";
+import { KPI_DEFINITIONS } from "../config/kpiDefinitions";
+import {
+  phaseColorKey,
+  requestColorKey,
+  subItemColorKey,
+} from "../hooks/useStatusColors";
 import {
   CONTRACT_LABOR,
   CONTRACT_SERVICES,
@@ -35,10 +58,12 @@ import {
 } from "../services/ProvisioningService";
 import { formatCurrencyBRL } from "../utils/formatters";
 import GlassCard from "../components/common/GlassCard";
+import Badge from "../components/common/Badge";
 import SkeletonLoader from "../components/common/SkeletonLoader";
 import styles from "./ConfigurationPage.module.scss";
 
 type TabKey =
+  | "kpi"
   | "contract"
   | "sla"
   | "holidays"
@@ -49,29 +74,93 @@ type TabKey =
   | "notifications"
   | "system";
 
-const NAV: { group: string; items: { key: TabKey; label: string }[] }[] = [
+interface INavItem {
+  key: TabKey;
+  label: string;
+  icon: React.ReactElement;
+  /** Accent token for the icon chip; the only colour in an otherwise neutral nav. */
+  accent: string;
+}
+
+const NAV: { group: string; items: INavItem[] }[] = [
   {
-    group: "Contrato",
+    group: "Desempenho",
     items: [
-      { key: "contract", label: "Contrato & Pesos" },
-      { key: "sla", label: "SLA × Complexidade" },
-      { key: "holidays", label: "Feriados BR" },
-      { key: "budgetTypes", label: "Tipos de Orçamento" },
+      {
+        key: "kpi",
+        label: "Metas de KPI",
+        icon: <Target24Regular />,
+        accent: "var(--tertiary-accent)",
+      },
     ],
   },
   {
-    group: "Aparência",
+    group: "Contrato",
     items: [
-      { key: "statuses", label: "Status & Fases" },
-      { key: "teams", label: "Times" },
+      {
+        key: "contract",
+        label: "Contrato & Pesos",
+        icon: <DocumentBulletList24Regular />,
+        accent: "var(--primary-accent)",
+      },
+      {
+        key: "sla",
+        label: "Prazo × Complexidade",
+        icon: <Clock24Regular />,
+        accent: "var(--warning)",
+      },
+      {
+        key: "holidays",
+        label: "Feriados BR",
+        icon: <CalendarLtr24Regular />,
+        accent: "var(--info)",
+      },
+      {
+        key: "budgetTypes",
+        label: "Tipos de Orçamento",
+        icon: <Money24Regular />,
+        accent: "var(--success)",
+      },
+    ],
+  },
+  {
+    group: "Fluxo",
+    items: [
+      {
+        key: "statuses",
+        label: "Fases & Status",
+        icon: <Flowchart24Regular />,
+        accent: "var(--secondary-accent)",
+      },
+      {
+        key: "teams",
+        label: "Times",
+        icon: <People24Regular />,
+        accent: "var(--primary-accent)",
+      },
     ],
   },
   {
     group: "Sistema",
     items: [
-      { key: "access", label: "Níveis de Acesso" },
-      { key: "notifications", label: "Notificações" },
-      { key: "system", label: "Sistema" },
+      {
+        key: "access",
+        label: "Níveis de Acesso",
+        icon: <ShieldKeyhole24Regular />,
+        accent: "var(--danger)",
+      },
+      {
+        key: "notifications",
+        label: "Notificações",
+        icon: <Alert24Regular />,
+        accent: "var(--warning)",
+      },
+      {
+        key: "system",
+        label: "Sistema",
+        icon: <Database24Regular />,
+        accent: "var(--text-secondary)",
+      },
     ],
   },
 ];
@@ -80,6 +169,19 @@ const PERM_CYCLE: AccessPermission[] = ["none", "view", "edit"];
 const COMPLEXITIES: ("Baixa" | "Média" | "Alta")[] = ["Baixa", "Média", "Alta"];
 const ATTENDANCES: Attendance[] = ["Interna", "Externa"];
 
+const WORKFLOWS: { key: WorkflowKind; label: string }[] = [
+  { key: "fabrication", label: "Fabricação" },
+  { key: "parts", label: "Partes e Peças" },
+];
+
+// Anything the admin may recolour, addressed by its namespaced config key.
+interface IColorTarget {
+  colorKey: string;
+  seed: string;
+  label: string;
+  hint?: string;
+}
+
 export const ConfigurationPage: React.FC = () => {
   const { data, isLoading } = useAppConfig();
   const saveConfig = useSaveAppConfig();
@@ -87,10 +189,12 @@ export const ConfigurationPage: React.FC = () => {
   const addToast = useUIStore((s) => s.addToast);
   const setStoreConfig = useConfigStore((s) => s.setConfig);
 
-  const [tab, setTab] = React.useState<TabKey>("contract");
+  const [tab, setTab] = React.useState<TabKey>("kpi");
   const [draft, setDraft] = React.useState<IAppConfig>(DEFAULT_APP_CONFIG);
   const [dirty, setDirty] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [panel, setPanel] = React.useState<IColorTarget | undefined>();
+  const [panelColor, setPanelColor] = React.useState("#0072ce");
   const [provision, setProvision] = React.useState<
     IProvisionResult | undefined
   >();
@@ -148,17 +252,17 @@ export const ConfigurationPage: React.FC = () => {
       <div className={styles.sectionHead}>
         <h3>Contrato &amp; Pesos</h3>
         <p>
-          Somente leitura — a fonte é o template oficial do Relatório de
+          Somente leitura. A fonte é o template oficial do Relatório de
           Orçamento. Alterar exige atualizar o .xlsx e o código.
         </p>
       </div>
       <div className={styles.readonlyGrid}>
         <div>
-          <span>Preço unitário — Tabela 2</span>
+          <span>Preço unitário (Tabela 2)</span>
           <b>{formatCurrencyBRL(CONTRACT_WEIGHTS.unitPriceTable2BRL)}</b>
         </div>
         <div>
-          <span>Preço unitário — Tabela 1</span>
+          <span>Preço unitário (Tabela 1)</span>
           <b>{formatCurrencyBRL(CONTRACT_WEIGHTS.unitPriceTable1BRL)}</b>
         </div>
         <div>
@@ -180,7 +284,7 @@ export const ConfigurationPage: React.FC = () => {
   const renderSla = (): React.ReactElement => (
     <div className={styles.section}>
       <div className={styles.sectionHead}>
-        <h3>SLA × Complexidade</h3>
+        <h3>Prazo × Complexidade</h3>
         <p>Prazo de resposta do orçamento, em dias úteis (§10.1).</p>
       </div>
       <div className={styles.matrix}>
@@ -334,43 +438,193 @@ export const ConfigurationPage: React.FC = () => {
     );
   };
 
-  const renderStatuses = (): React.ReactElement => (
-    <div className={styles.section}>
-      <div className={styles.sectionHead}>
-        <h3>Status &amp; Fases</h3>
-        <p>Cores usadas em badges, boards e gráficos.</p>
+  const openColorPanel = (target: IColorTarget): void => {
+    setPanel(target);
+    setPanelColor(draft.statusColors[target.colorKey] ?? target.seed);
+  };
+
+  const applyPanelColor = (): void => {
+    if (!panel) return;
+    patch({
+      statusColors: { ...draft.statusColors, [panel.colorKey]: panelColor },
+    });
+    setPanel(undefined);
+  };
+
+  const resetPanelColor = (): void => {
+    if (!panel) return;
+    const next = { ...draft.statusColors };
+    delete next[panel.colorKey];
+    patch({ statusColors: next });
+    setPanel(undefined);
+  };
+
+  const colorOf = (key: string, seed: string): string =>
+    draft.statusColors[key] ?? seed;
+
+  const renderOptionCard = (target: IColorTarget): React.ReactElement => (
+    <div key={target.colorKey} className={styles.optionCard}>
+      <span
+        className={styles.optionColor}
+        style={{ background: colorOf(target.colorKey, target.seed) }}
+      />
+      <div className={styles.optionInfo}>
+        <span className={styles.optionLabel}>{target.label}</span>
+        {target.hint && (
+          <span className={styles.optionHint}>{target.hint}</span>
+        )}
       </div>
-      {[
-        { label: "Status do FID", list: REQUEST_STATUSES },
-        { label: "Status do sub-item", list: SUB_ITEM_STATUSES },
-      ].map((block) => (
-        <div key={block.label} className={styles.groupBlock}>
-          <div className={styles.groupLabel}>{block.label}</div>
-          <div className={styles.optionsList}>
-            {block.list.map((s) => {
-              const color = draft.statusColors[s.key] ?? s.color;
-              return (
-                <div key={s.key} className={styles.optionCard}>
-                  <input
-                    type="color"
-                    value={color}
-                    disabled={!canEdit}
-                    onChange={(e) =>
-                      patch({
-                        statusColors: {
-                          ...draft.statusColors,
-                          [s.key]: e.currentTarget.value,
-                        },
-                      })
-                    }
-                  />
-                  <span>{s.label}</span>
-                </div>
-              );
-            })}
+      {canEdit && (
+        <Button
+          size="small"
+          appearance="subtle"
+          className={styles.editColorBtn}
+          onClick={() => openColorPanel(target)}
+        >
+          Editar cor
+        </Button>
+      )}
+    </div>
+  );
+
+  const renderPhaseCard = (target: IColorTarget): React.ReactElement => (
+    <div key={target.colorKey} className={styles.phaseCard}>
+      <div className={styles.phaseHead}>
+        <span
+          className={styles.optionColor}
+          style={{ background: colorOf(target.colorKey, target.seed) }}
+        />
+        <span className={styles.optionLabel}>{target.label}</span>
+        {canEdit && (
+          <Button
+            size="small"
+            appearance="subtle"
+            className={styles.editColorBtn}
+            onClick={() => openColorPanel(target)}
+          >
+            Editar cor
+          </Button>
+        )}
+      </div>
+      {target.hint && <p className={styles.phaseHint}>{target.hint}</p>}
+    </div>
+  );
+
+  const statusGroup = (
+    label: string,
+    list: IStatusDef<RequestStatus>[],
+  ): React.ReactElement => (
+    <div key={label} className={styles.groupBlock}>
+      <div className={styles.groupLabel}>{label}</div>
+      <div className={styles.optionsList}>
+        {list.map((s) =>
+          renderOptionCard({
+            colorKey: requestColorKey(s.key),
+            seed: s.color,
+            label: s.label,
+          }),
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStatuses = (): React.ReactElement => {
+    const byPhase = (phase: Phase): IStatusDef<RequestStatus>[] =>
+      REQUEST_STATUSES.filter((s) => s.phase === phase);
+    const transversal = REQUEST_STATUSES.filter((s) => s.phase === undefined);
+    const subByPhase = (phase: Phase): ISubItemStatusDef[] =>
+      SUB_ITEM_STATUSES.filter((s) => s.phase === phase);
+
+    return (
+      <div className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h3>Fases &amp; Status</h3>
+          <p>
+            O mapeamento é fixo no código. Aqui o administrador ajusta apenas as
+            cores usadas em badges, boards e gráficos.
+          </p>
+        </div>
+
+        <div className={styles.groupBlock}>
+          <div className={styles.groupLabel}>Fases</div>
+          <div className={styles.phasesList}>
+            {WORKFLOWS.map((f) =>
+              PHASES_BY_WORKFLOW[f.key].map((p) =>
+                p.phase === 1 && f.key === "parts"
+                  ? null
+                  : renderPhaseCard({
+                      colorKey: phaseColorKey(f.key, p.phase),
+                      seed: p.color,
+                      label: `Fase ${p.phase} · ${p.label}`,
+                      hint: p.description,
+                    }),
+              ),
+            )}
           </div>
         </div>
-      ))}
+
+        {statusGroup("Status do FID · Fase 1 (Orçamentação)", byPhase(1))}
+        {statusGroup("Status do FID · Fase 2 (Execução)", byPhase(2))}
+        {statusGroup("Status do FID · Transversais", transversal)}
+
+        {[
+          { label: "Status do Sub-item · Fase 1", list: subByPhase(1) },
+          { label: "Status do Sub-item · Fase 2", list: subByPhase(2) },
+        ].map((block) => (
+          <div key={block.label} className={styles.groupBlock}>
+            <div className={styles.groupLabel}>{block.label}</div>
+            <div className={styles.optionsList}>
+              {block.list.map((s) =>
+                renderOptionCard({
+                  colorKey: subItemColorKey(s.key),
+                  seed: s.color,
+                  label: s.label,
+                }),
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderKpiTargets = (): React.ReactElement => (
+    <div className={styles.section}>
+      <div className={styles.sectionHead}>
+        <h3>Metas de KPI</h3>
+        <p>
+          Limiares exibidos nos cartões do Dashboard. Cada indicador compara o
+          valor apurado com a sua meta.
+        </p>
+      </div>
+      <div className={styles.kpiGrid}>
+        {KPI_DEFINITIONS.map((k) => (
+          <div key={k.key} className={styles.kpiCard}>
+            <span className={styles.kpiLabel}>{k.label}</span>
+            <span className={styles.kpiDescription}>{k.description}</span>
+            <div className={styles.kpiInputRow}>
+              <Input
+                type="number"
+                size="small"
+                disabled={!canEdit}
+                value={String(draft.kpiTargets[k.key] ?? k.defaultTarget)}
+                onChange={(_, d) =>
+                  patch({
+                    kpiTargets: {
+                      ...draft.kpiTargets,
+                      [k.key]: Number(d.value) || 0,
+                    },
+                  })
+                }
+              />
+              <span className={styles.kpiUnit}>{k.unit}</span>
+            </div>
+            <span className={styles.kpiDirection}>
+              {k.lowerIsBetter ? "Menor é melhor" : "Maior é melhor"}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -576,6 +830,7 @@ export const ConfigurationPage: React.FC = () => {
   );
 
   const renderTab = (): React.ReactElement => {
+    if (tab === "kpi") return renderKpiTargets();
     if (tab === "contract") return renderContract();
     if (tab === "sla") return renderSla();
     if (tab === "holidays") return renderHolidays();
@@ -596,7 +851,7 @@ export const ConfigurationPage: React.FC = () => {
 
       {!canEdit && (
         <div className={styles.readOnlyBanner}>
-          Acesso somente leitura — apenas administradores podem alterar a
+          Acesso somente leitura. Apenas administradores podem alterar a
           configuração.
         </div>
       )}
@@ -613,6 +868,14 @@ export const ConfigurationPage: React.FC = () => {
                   className={`${styles.navItem} ${tab === item.key ? styles.navActive : ""}`}
                   onClick={() => setTab(item.key)}
                 >
+                  <span
+                    className={styles.navIcon}
+                    style={
+                      { "--nav-accent": item.accent } as React.CSSProperties
+                    }
+                  >
+                    {item.icon}
+                  </span>
                   {item.label}
                 </button>
               ))}
@@ -643,6 +906,59 @@ export const ConfigurationPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {panel && (
+        <>
+          <div
+            className={styles.panelBackdrop}
+            onClick={() => setPanel(undefined)}
+          />
+          <aside className={styles.panelOverlay}>
+            <div className={styles.panelHeader}>
+              <h3>Cor do rótulo</h3>
+              <Button
+                appearance="subtle"
+                icon={<Dismiss20Regular />}
+                onClick={() => setPanel(undefined)}
+                aria-label="Fechar"
+              />
+            </div>
+            <div className={styles.panelBody}>
+              <div className={styles.panelField}>
+                <label>Item</label>
+                <strong>{panel.label}</strong>
+                {panel.hint && <p>{panel.hint}</p>}
+              </div>
+              <div className={styles.panelField}>
+                <label htmlFor="panel-color">Cor</label>
+                <input
+                  id="panel-color"
+                  type="color"
+                  className={styles.panelColorInput}
+                  value={panelColor}
+                  onChange={(e) => setPanelColor(e.currentTarget.value)}
+                />
+              </div>
+              <div className={styles.panelField}>
+                <label>Prévia</label>
+                <Badge label={panel.label} color={panelColor} />
+              </div>
+            </div>
+            <div className={styles.panelFooter}>
+              <Button
+                icon={<ArrowReset20Regular />}
+                onClick={resetPanelColor}
+                disabled={draft.statusColors[panel.colorKey] === undefined}
+              >
+                Restaurar padrão
+              </Button>
+              <Button appearance="primary" onClick={applyPanelColor}>
+                Aplicar
+              </Button>
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 };

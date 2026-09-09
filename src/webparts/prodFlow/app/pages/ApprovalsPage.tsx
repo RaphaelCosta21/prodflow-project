@@ -13,6 +13,7 @@ import { useStatusNotifier } from "../hooks/useStatusNotifier";
 import { useAccessLevel } from "../hooks/useAccessLevel";
 import { useUIStore } from "../stores/useUIStore";
 import { REQUEST_STATUS_MAP } from "../config/statuses";
+import { workflowOf } from "../config/workflows";
 import { canTransition } from "../utils/statusHelpers";
 import { formatCurrencyBRL, formatDate } from "../utils/formatters";
 import { isBudgetOverdue } from "../utils/kpis";
@@ -23,7 +24,7 @@ import StatusBadge from "../components/common/StatusBadge";
 import FidLink from "../components/common/FidLink";
 import styles from "./ApprovalsPage.module.scss";
 
-const PENDING: RequestStatus[] = ["BudgetReview", "Submitted", "Rejected"];
+const PENDING: RequestStatus[] = ["InDelineation", "Submitted", "Rejected"];
 
 export const ApprovalsPage: React.FC = () => {
   const { data, isLoading, isError } = useFidsFull();
@@ -109,7 +110,12 @@ export const ApprovalsPage: React.FC = () => {
                   </span>
                   <StatusBadge kind="request" status={r.status} />
                   <div className={styles.actions}>
-                    {canTransition(r.status, "Submitted") && (
+                    {canTransition(
+                      r.status,
+                      "Submitted",
+                      workflowOf(r.tipoOrcamento),
+                      r.resumeStatus,
+                    ) && (
                       <Button
                         size="small"
                         appearance="primary"
@@ -146,7 +152,7 @@ export const ApprovalsPage: React.FC = () => {
                         size="small"
                         icon={<ArrowUndo20Regular />}
                         disabled={!canAct}
-                        onClick={() => go(r, "Budgeting")}
+                        onClick={() => go(r, "InDelineation")}
                       >
                         Revisar
                       </Button>

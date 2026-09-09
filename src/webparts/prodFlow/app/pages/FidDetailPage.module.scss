@@ -10,13 +10,13 @@
 
 .hero {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: stretch;
   gap: 16px;
   padding: 20px 24px;
   border-radius: 16px;
   background: var(--gradient-header);
   box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .heroMain {
@@ -24,6 +24,19 @@
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  flex: 0 1 auto;
+  max-width: 60%;
+  align-self: center;
+}
+
+/* Organic brand tracery woven through the empty middle space of the header. */
+.heroArt {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 80px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='96' viewBox='0 0 600 96' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M0 66 C110 66 150 20 270 32 S470 66 600 26' stroke='%23FF8A00' stroke-opacity='.5'/%3E%3Cpath d='M0 32 C130 30 175 74 305 62 S500 22 600 58' stroke='%2300B4E6' stroke-opacity='.45'/%3E%3Cpath d='M0 50 C95 52 200 8 300 48 S520 84 600 42' stroke='%230072CE' stroke-opacity='.4'/%3E%3Cpath d='M0 82 C160 82 240 46 380 54 S520 30 600 70' stroke='%23FFFFFF' stroke-opacity='.14'/%3E%3C/g%3E%3Cg fill='%2300B4E6' fill-opacity='.5'%3E%3Ccircle cx='270' cy='32' r='2.4'/%3E%3Ccircle cx='305' cy='62' r='2.4'/%3E%3C/g%3E%3Cg fill='%23FF8A00' fill-opacity='.55'%3E%3Ccircle cx='300' cy='48' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .heroTitleRow {
@@ -75,11 +88,40 @@
   color: var(--header-text);
 }
 
+.strong {
+  font-weight: 600;
+  color: var(--header-text);
+}
+
 .heroBadges {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 12px;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.badgeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.badgeCaption {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--header-text-muted);
+}
+
+.badgeDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 0;
+  background: var(--header-text-muted);
+  opacity: 0.35;
 }
 
 .layout {
@@ -107,6 +149,10 @@
 
   .hero {
     flex-direction: column;
+  }
+
+  .heroArt {
+    display: none;
   }
 }
 

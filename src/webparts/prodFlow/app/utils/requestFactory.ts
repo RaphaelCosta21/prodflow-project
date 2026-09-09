@@ -186,7 +186,7 @@ export function buildNewRequest(
     complexidadeGeral,
     atendimento: input.atendimento,
     phase: 1,
-    status: "Draft",
+    status: "InDelineation",
     dates: {
       recebimentoDemanda: now,
       solicitacaoOrcamento: input.solicitacaoOrcamento,

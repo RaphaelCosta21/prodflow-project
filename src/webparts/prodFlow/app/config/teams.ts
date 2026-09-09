@@ -20,7 +20,7 @@ export interface ITeamDef {
 
 export const TEAMS: Record<TeamKey, ITeamDef> = {
   projects: { key: "projects", label: "Projects", color: "#0a58ca" },
-  planning: { key: "planning", label: "Planning (PCP)", color: "#7c3aed" },
+  planning: { key: "planning", label: "Planejamento", color: "#7c3aed" },
   industrialEngineering: {
     key: "industrialEngineering",
     label: "Industrial Engineering",

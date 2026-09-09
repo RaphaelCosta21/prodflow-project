@@ -17,40 +17,64 @@ export const buyTypeSchema = z.enum(["RawMaterial", "CommercialItem"]);
 export const makeSiteSchema = z.enum(["InHouse", "Subcon"]);
 
 export const requestStatusSchema = z.enum([
-  "Draft",
-  "Budgeting",
-  "BudgetReview",
+  "InDelineation",
   "Submitted",
   "Approved",
   "Rejected",
-  "ReleasedForProduction",
-  "InProduction",
-  "FinalInspection",
+  "ReleasedForFabrication",
+  "ReleasedForProcurement",
+  "InFabrication",
+  "InProcurement",
+  "ExternalService",
   "Delivered",
-  "Completed",
-  "Closed",
   "OnHold",
   "Cancelled",
 ]);
 
 export const subItemStatusSchema = z.enum([
   "NotStarted",
-  "Strategy",
-  "WaitingDelineation",
-  "WaitingQuotation",
-  "Costed",
-  "WaitingRelease",
-  "InProcurement",
+  "InQuotation",
+  "Quoted",
+  "FabDelineation",
+  "Delineated",
   "WaitingMaterial",
+  "InStock",
   "InFabrication",
-  "Subcontracted",
+  "ExternalService",
   "InInspection",
-  "ReadyInStock",
-  "InAssembly",
   "Completed",
   "OnHold",
-  "Cancelled",
 ]);
+
+export const phaseSchema = z.union([z.literal(1), z.literal(2)]);
+
+const timelineBase = {
+  id: z.number(),
+  start: z.string(),
+  end: z.string().optional(),
+  durationHours: z.number().optional(),
+  actor: z.string(),
+  note: z.string().optional(),
+};
+
+export const phaseHistorySchema = z.object({
+  ...timelineBase,
+  phase: phaseSchema,
+});
+
+export const statusHistorySchema = z.object({
+  ...timelineBase,
+  status: requestStatusSchema,
+  from: requestStatusSchema.optional(),
+  phase: phaseSchema,
+});
+
+export const subItemStatusHistorySchema = z.object({
+  ...timelineBase,
+  status: subItemStatusSchema,
+  from: subItemStatusSchema.optional(),
+  team: z.string().optional(),
+});
 
 export const drawingSchema = z.object({
   code: z.string(),
@@ -157,7 +181,8 @@ export const subItemSchema: z.ZodTypeAny = z.lazy(() =>
     ownerTeam: z.string().optional(),
     naReason: z.string().optional(),
     selectedQuotationId: z.string().optional(),
-    statusHistory: z.array(z.unknown()).optional(),
+    statusHistory: z.array(subItemStatusHistorySchema).optional(),
+    resumeStatus: subItemStatusSchema.optional(),
     fabricationBudget: z.unknown().optional(),
     rcOrSr: z.string().optional(),
     poOrWo: z.string().optional(),
@@ -292,8 +317,9 @@ export const fabricationRequestSchema = z.object({
   complexidadeCaldeiraria: complexitySchema,
   complexidadeGeral: complexitySchema,
   atendimento: attendanceSchema,
-  phase: z.union([z.literal(1), z.literal(2)]),
+  phase: phaseSchema,
   status: requestStatusSchema,
+  resumeStatus: requestStatusSchema.optional(),
   dates: z.object({
     recebimentoDemanda: z.string().optional(),
     solicitacaoOrcamento: z.string().optional(),
@@ -307,8 +333,8 @@ export const fabricationRequestSchema = z.object({
   budget: budgetSchema,
   partsBudget: partsBudgetSchema.optional(),
   quotationPackages: z.array(quotationPackageSchema).optional(),
-  phaseHistory: z.array(z.unknown()).optional(),
-  statusHistory: z.array(z.unknown()).optional(),
+  phaseHistory: z.array(phaseHistorySchema).optional(),
+  statusHistory: z.array(statusHistorySchema).optional(),
   notes: z.record(z.string()).optional(),
   comments: z
     .array(

@@ -12,7 +12,7 @@ const subItem = (over: Partial<ISubItem>): ISubItem => ({
   drawing: { code: "", revision: "" },
   attendance: "Interna",
   complexity: "Média",
-  status: "Costed",
+  status: "Quoted",
   fabChecklist: [],
   ...over,
 });
@@ -29,7 +29,7 @@ const request = (over: Partial<IFabricationRequest>): IFabricationRequest => ({
   complexidadeGeral: "Média",
   atendimento: "Interna",
   phase: 1,
-  status: "Budgeting",
+  status: "InDelineation",
   dates: {},
   budget: createEmptyBudget(),
   financials: createEmptyFinancials(),

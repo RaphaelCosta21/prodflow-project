@@ -15,19 +15,23 @@ export interface IPhaseHistoryEntry {
 export interface IStatusHistoryEntry {
   id: number;
   status: RequestStatus;
+  from?: RequestStatus;
   phase: Phase;
   start: string;
   end?: string;
   durationHours?: number;
   actor: string;
+  note?: string;
 }
 
 export interface ISubItemStatusHistoryEntry {
   id: number;
   status: SubItemStatus;
+  from?: SubItemStatus;
   team?: TeamKey;
   start: string;
   end?: string;
   durationHours?: number;
   actor: string;
+  note?: string;
 }

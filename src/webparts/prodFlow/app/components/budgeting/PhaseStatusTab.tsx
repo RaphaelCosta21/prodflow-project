@@ -12,8 +12,9 @@ import {
 } from "@fluentui/react-components";
 import { CheckmarkCircle20Filled } from "@fluentui/react-icons";
 import { IFabricationRequest, RequestStatus } from "../../models";
-import { PHASES } from "../../config/phases";
+import { phasesFor } from "../../config/phases";
 import { REQUEST_STATUSES } from "../../config/statuses";
+import { isSubItemCosted, workflowOf } from "../../config/workflows";
 import { useUpdateStatus } from "../../api/fids";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useStatusColors } from "../../hooks/useStatusColors";
@@ -48,7 +49,13 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
   const colors = useStatusColors();
   const addToast = useUIStore((s) => s.addToast);
   const updateStatus = useUpdateStatus(fid);
-  const { allowed, canMoveTo, ownerLabel } = useStatusPermissions(data.status);
+  const flow = workflowOf(data.tipoOrcamento);
+  const phases = phasesFor(flow);
+  const { allowed, canMoveTo, ownerLabel } = useStatusPermissions(
+    data.status,
+    flow,
+    data.resumeStatus,
+  );
 
   const [target, setTarget] = React.useState<RequestStatus | undefined>();
   const [note, setNote] = React.useState("");
@@ -59,13 +66,13 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
     !frozen && openStatus ? openStatus.start : undefined,
   );
 
-  const currentPhaseIndex = PHASES.findIndex((p) => p.phase === data.phase);
+  const currentPhaseIndex = phases.findIndex((p) => p.phase === data.phase);
   const totalDays = calcElapsedDays(data.dates.recebimentoDemanda);
   const phaseDays = calcElapsedDays(
     (data.phaseHistory ?? []).filter((e) => !e.end).pop()?.start,
   );
   const costed = data.subItems.filter(
-    (s) => s.status === "Costed" || s.strategy === "NA",
+    (s) => isSubItemCosted(s.status) || s.strategy === "NA",
   ).length;
   const costedPct = data.subItems.length
     ? Math.round((costed / data.subItems.length) * 100)
@@ -122,7 +129,7 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
     <div className={styles.container}>
       <GlassCard title="Progresso das fases">
         <div className={styles.stepper}>
-          {PHASES.map((phase, idx) => {
+          {phases.map((phase, idx) => {
             const done = idx < currentPhaseIndex;
             const current = idx === currentPhaseIndex;
             const entry = (data.phaseHistory ?? []).filter(
@@ -153,7 +160,7 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
                     <span className={styles.stepDuration}>{duration}</span>
                   )}
                 </div>
-                {idx < PHASES.length - 1 && (
+                {idx < phases.length - 1 && (
                   <div
                     className={`${styles.connector} ${done ? styles.connectorDone : ""}`}
                   />
@@ -194,7 +201,7 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
                 {colors.requestStatus(data.status).label}
               </span>
               <span className={styles.currentPhase}>
-                {colors.phase(data.phase).label}
+                {colors.phase(data.phase, flow).label}
               </span>
               {liveStatus && (
                 <span className={styles.live}>
@@ -262,7 +269,7 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
                     <div className={styles.recentTitle}>
                       <StatusBadge kind="request" status={entry.status} />
                       <span className={styles.recentPhase}>
-                        {colors.phase(entry.phase).label}
+                        {colors.phase(entry.phase, flow).label}
                       </span>
                     </div>
                     <div className={styles.recentMeta}>
