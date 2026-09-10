@@ -205,6 +205,17 @@ export function buildNewRequest(
         message: `FID criado a partir da OS ${input.osNumber}.`,
       },
     ],
+    // Timeline opens at creation so the phase/status counters start ticking immediately.
+    phaseHistory: [{ id: 1, phase: 1, start: now, actor: input.createdBy }],
+    statusHistory: [
+      {
+        id: 1,
+        status: "InDelineation",
+        phase: 1,
+        start: now,
+        actor: input.createdBy,
+      },
+    ],
     attachments: [],
   };
 }

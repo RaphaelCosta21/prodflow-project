@@ -93,6 +93,36 @@
   color: var(--header-text);
 }
 
+.deadlineChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--chip-fg);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-fg);
+}
+
+.chipOk {
+  --chip-fg: var(--header-text-secondary);
+  --chip-bg: rgba(255, 255, 255, 0.08);
+}
+
+.chipDue {
+  --chip-fg: var(--warning);
+  --chip-bg: var(--warning-bg);
+}
+
+.chipOverdue {
+  --chip-fg: var(--danger);
+  --chip-bg: var(--danger-bg);
+}
+
 .heroBadges {
   display: flex;
   align-items: center;

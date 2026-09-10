@@ -21,6 +21,8 @@ export interface IPartsBudgetLine {
 
 export interface IPartsBudget {
   contrato: string;
+  /** Defaults to the FID's "Descrição", but the report header can be overridden per quote. */
+  projeto: string;
   numeroOrcamento: string;
   revisao?: string;
   data?: string;

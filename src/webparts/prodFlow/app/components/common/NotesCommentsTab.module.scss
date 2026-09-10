@@ -11,9 +11,16 @@
   align-items: start;
 }
 
+/* Fluent's Textarea root only sizes the wrapper — the inner <textarea> needs the height too. */
 .notesArea {
   width: 100%;
-  min-height: 120px;
+  max-width: 100%;
+}
+
+.notesInput {
+  width: 100%;
+  min-height: 180px;
+  max-height: none;
 }
 
 .composer {
@@ -25,7 +32,14 @@
 
 .composerArea {
   flex: 1;
-  min-height: 60px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.composerInput {
+  width: 100%;
+  min-height: 80px;
+  max-height: none;
 }
 
 .thread {

@@ -28,6 +28,7 @@ export const ATTACHMENT_CATEGORIES: Record<
   CRD: { label: "Desenho (CRD)", folder: "CRD" },
   OII: { label: "Part Number OII", folder: "OII" },
   BR: { label: "Desenho BR", folder: "BR" },
+  DEL: { label: "Delineamento de Fab.", folder: "Delineamento" },
 };
 
 export function attachmentExtension(fileName: string): string {

@@ -4,6 +4,13 @@
   gap: 16px;
 }
 
+.strategyActions {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .table {
   display: flex;
   flex-direction: column;

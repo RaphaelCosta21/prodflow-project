@@ -1,8 +1,8 @@
 import * as React from "react";
 import { formatLiveElapsed } from "../utils/durationHelpers";
 
-/** Ticking elapsed label; pass `undefined` to stop (terminal status freezes the timer). */
-export function useLiveElapsed(startIso?: string): string {
+/** Ticking elapsed label; `frozenAt` (epoch ms) stops the timer at a fixed instant. */
+export function useLiveElapsed(startIso?: string, frozenAt?: number): string {
   const [elapsed, setElapsed] = React.useState("");
 
   React.useEffect(() => {
@@ -10,12 +10,16 @@ export function useLiveElapsed(startIso?: string): string {
       setElapsed("");
       return;
     }
-    const tick = (): void =>
-      setElapsed(formatLiveElapsed(Date.now() - new Date(startIso).getTime()));
+    const from = new Date(startIso).getTime();
+    if (frozenAt !== undefined) {
+      setElapsed(formatLiveElapsed(frozenAt - from));
+      return;
+    }
+    const tick = (): void => setElapsed(formatLiveElapsed(Date.now() - from));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [startIso]);
+  }, [startIso, frozenAt]);
 
   return elapsed;
 }

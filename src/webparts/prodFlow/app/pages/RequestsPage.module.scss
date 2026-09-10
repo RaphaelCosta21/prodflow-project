@@ -22,3 +22,26 @@
   font-weight: 600;
   color: var(--primary-accent);
 }
+
+.count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.drawing {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rev {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+}

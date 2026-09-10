@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import { Attendance, Complexity } from "../models";
+import { Attendance, Complexity, SlaAttendance } from "../models";
+import { slaFromRow } from "../utils/slaMatrix";
 
 export interface ISlaMatrix {
-  Baixa: Record<Attendance, number>;
-  Média: Record<Attendance, number>;
-  Alta: Record<Attendance, number>;
+  Baixa: Record<SlaAttendance, number>;
+  Média: Record<SlaAttendance, number>;
+  Alta: Record<SlaAttendance, number>;
 }
 
 export type AccessArea =
@@ -61,5 +62,5 @@ export function slaFromMatrix(
 ): number | undefined {
   if (!matrix) return undefined;
   const row = matrix[complexity as "Baixa" | "Média" | "Alta"];
-  return row ? row[attendance] : undefined;
+  return row ? slaFromRow(row, attendance) : undefined;
 }

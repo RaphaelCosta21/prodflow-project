@@ -1,4 +1,4 @@
-import { Attendance, ISubItem } from "../models";
+import { ISubItem, SubItemAttendance } from "../models";
 import { parseBomCsv, IParsedBomLine } from "../utils/bomParser";
 
 // Converts a BOM CSV (exported from the engineering TOP LEVEL) into ISubItem[] (flat
@@ -7,7 +7,7 @@ import { parseBomCsv, IParsedBomLine } from "../utils/bomParser";
 export class BomImportService {
   public static fromCsv(
     csvText: string,
-    defaultAttendance: Attendance,
+    defaultAttendance: SubItemAttendance,
   ): ISubItem[] {
     const { lines } = parseBomCsv(csvText);
     return lines.map((line) =>
@@ -25,7 +25,7 @@ export class BomImportService {
     parentId?: string;
     level: number;
     findNumber?: string;
-    attendance: Attendance;
+    attendance: SubItemAttendance;
   }): ISubItem {
     const rand = Math.floor(Math.random() * 1e6).toString(36);
     return {
@@ -47,7 +47,7 @@ export class BomImportService {
 
   private static toSubItem(
     line: IParsedBomLine,
-    attendance: Attendance,
+    attendance: SubItemAttendance,
   ): ISubItem {
     return {
       id: line.id,

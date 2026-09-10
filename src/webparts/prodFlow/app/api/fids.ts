@@ -26,6 +26,7 @@ import { canTransition } from "../utils/statusHelpers";
 import {
   executionStatusOf,
   initialSubItemStatus,
+  isInternalMake,
   isSubItemCosted,
   workflowOf,
 } from "../config/workflows";
@@ -38,7 +39,21 @@ import { delineationToBudget } from "../utils/delineationToBudget";
 import { derivePartsBudget } from "../utils/partsBudgetBuilder";
 import { withDerivedHh } from "../utils/requestFactory";
 import { recomputeFinancials } from "../utils/financialsRollup";
+import {
+  CLASSIFICATION_LABELS,
+  ClassificationField,
+  recomputeBudgetSla,
+  syncAttendanceFromStrategies,
+} from "../utils/classification";
+import { computeBudgetSla } from "../utils/kpis";
+import { formatDate } from "../utils/formatters";
 import { queryKeys } from "./queryKeys";
+
+/** Keeps free-text excerpts short in the activity log. */
+function truncate(text: string, max = 80): string {
+  const clean = text.trim().replace(/\s+/g, " ");
+  return clean.length > max ? `${clean.slice(0, max)}…` : clean;
+}
 
 export function useFids(): UseQueryResult<IFabricationRequestHeader[]> {
   return useQuery({
@@ -83,10 +98,79 @@ export function useCreateFid(): UseMutationResult<
   });
 }
 
+export type IClassificationChanges = Partial<
+  Pick<IFabricationRequest, ClassificationField>
+>;
+
+interface IUpdateClassificationVars {
+  changes: IClassificationChanges;
+  by: string;
+}
+
+interface IUpdateClassificationContext {
+  previous?: IFabricationRequest;
+}
+
+// Complexidade/atendimento seguem editáveis após a criação — cada troca recalcula o prazo de envio.
+export function useUpdateClassification(
+  fid: string,
+): UseMutationResult<
+  IFabricationRequest,
+  unknown,
+  IUpdateClassificationVars,
+  IUpdateClassificationContext
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IUpdateClassificationVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const changed = (
+          Object.keys(vars.changes) as ClassificationField[]
+        ).filter((key) => vars.changes[key] !== draft[key]);
+        if (changed.length === 0) return;
+
+        const messages = changed.map(
+          (key) =>
+            `${CLASSIFICATION_LABELS[key]}: ${draft[key]} → ${vars.changes[key]}`,
+        );
+        Object.assign(draft, vars.changes);
+        recomputeBudgetSla(draft);
+        draft.history.push({
+          ts: new Date().toISOString(),
+          by: vars.by,
+          type: "classification:update",
+          message: messages.join(" · "),
+        });
+      }),
+    onMutate: async (vars): Promise<IUpdateClassificationContext> => {
+      await qc.cancelQueries({ queryKey: queryKeys.fid(fid) });
+      const previous = qc.getQueryData<IFabricationRequest>(queryKeys.fid(fid));
+      if (previous) {
+        qc.setQueryData(queryKeys.fid(fid), {
+          ...previous,
+          ...vars.changes,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous)
+        qc.setQueryData(queryKeys.fid(fid), context.previous);
+    },
+    onSettled: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.fid(fid) }),
+        qc.invalidateQueries({ queryKey: queryKeys.fidsFull }),
+      ]),
+  });
+}
+
 interface IUpdateSubItemVars {
   subItemId: string;
   changes: Partial<ISubItem>;
   by: string;
+  /** Optional activity-log entry for changes the status timeline doesn't cover (e.g. drawings). */
+  log?: { type: string; message: string };
 }
 
 interface IUpdateSubItemContext {
@@ -110,16 +194,25 @@ export function useUpdateSubItem(
         if (!item) return;
         const { status, ...fields } = vars.changes;
         Object.assign(item, fields);
+        if (vars.log) {
+          draft.history.push({
+            ts: new Date().toISOString(),
+            by: vars.by,
+            type: vars.log.type,
+            message: vars.log.message,
+          });
+        }
         if (status) {
           recordSubItemStatusChange(
             draft,
             item,
             status,
             vars.by,
-            subItemOwnersOf(item.strategy)[0],
+            subItemOwnersOf(item.strategy, item.makeSite)[0],
           );
         }
         recomputeFinancials(draft);
+        syncAttendanceFromStrategies(draft, vars.by);
       }),
     onMutate: async (vars): Promise<IUpdateSubItemContext> => {
       await qc.cancelQueries({ queryKey: queryKeys.fid(fid) });
@@ -169,10 +262,11 @@ export function useReplicateStrategy(
             item,
             "NotStarted",
             vars.by,
-            subItemOwnersOf(item.strategy)[0],
+            subItemOwnersOf(item.strategy, item.makeSite)[0],
           );
         }
         recomputeFinancials(draft);
+        syncAttendanceFromStrategies(draft, vars.by);
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.fid(fid) }),
   });
@@ -275,12 +369,39 @@ function applyStatusTransition(
     throw new Error(`Transição inválida: ${draft.status} → ${to}.`);
   }
   const when = dateISO ?? new Date().toISOString();
+  const sla =
+    to === "Submitted"
+      ? computeBudgetSla(draft.dates.prazoEnvioPetrobras, when)
+      : undefined;
   if (to === "Submitted") draft.dates.dataEnvioPetrobras = when;
+  if (sla && draft.dates.prazoEnvioPetrobras) {
+    draft.slaOrcamento = {
+      prazo: draft.dates.prazoEnvioPetrobras,
+      envio: when,
+      ...sla,
+      registradoEm: when,
+      registradoPor: by,
+    };
+  }
   if (to === "Approved") {
     draft.dates.dataAprovacaoPetrobras = when;
     draft.approval = { by, date: when, signatureRef };
   }
   recordStatusChange(draft, to, by, note, when);
+
+  if (sla) {
+    const prazoLabel = formatDate(draft.dates.prazoEnvioPetrobras);
+    draft.history.push({
+      ts: when,
+      by,
+      type: "sla:budget",
+      message: sla.onTime
+        ? `Orçamento enviado no prazo (prazo ${prazoLabel}).`
+        : `Orçamento enviado com ${sla.atrasoDiasUteis} ${
+            sla.atrasoDiasUteis === 1 ? "dia útil" : "dias úteis"
+          } de atraso (prazo ${prazoLabel}).`,
+    });
+  }
 
   if (to === executionStatusOf(flow)) {
     for (const item of draft.subItems) {
@@ -290,7 +411,7 @@ function applyStatusTransition(
         item,
         initialSubItemStatus(item.strategy, item.makeSite, 2),
         by,
-        subItemOwnersOf(item.strategy)[0],
+        subItemOwnersOf(item.strategy, item.makeSite)[0],
         "Liberado para a fase 2",
         when,
       );
@@ -315,9 +436,9 @@ export function useStartSubItems(
         for (const id of vars.subItemIds) {
           const item = draft.subItems.filter((s) => s.id === id)[0];
           if (!item || !item.strategy || item.strategy === "NA") continue;
-          const isMake = item.strategy === "Make";
-          const to: SubItemStatus = isMake ? "FabDelineation" : "InQuotation";
-          const team: TeamKey = isMake ? "industrialEngineering" : "scm";
+          const internal = isInternalMake(item);
+          const to: SubItemStatus = internal ? "FabDelineation" : "InQuotation";
+          const team: TeamKey = internal ? "industrialEngineering" : "scm";
           item.startedAt = when;
           item.startedBy = vars.by;
           recordSubItemStatusChange(
@@ -326,7 +447,7 @@ export function useStartSubItems(
             to,
             vars.by,
             team,
-            isMake ? "Roteado p/ delineamento" : "Roteado p/ cotação",
+            internal ? "Roteado p/ delineamento" : "Roteado p/ cotação",
             when,
           );
         }
@@ -352,6 +473,7 @@ export function useUpdateDelineation(
         const item = draft.subItems.filter((s) => s.id === vars.subItemId)[0];
         if (!item) return;
         const when = new Date().toISOString();
+        const wasConcluded = item.delineation?.concluido === true;
         item.delineation = withDerivedHh(vars.delineation);
         if (vars.concluir) {
           item.delineation.concluido = true;
@@ -366,6 +488,22 @@ export function useUpdateDelineation(
             undefined,
             when,
           );
+        } else if (wasConcluded) {
+          // Editar um delineamento já fechado o reabre — precisa ser concluído de novo.
+          item.delineation.concluido = false;
+          item.delineation.concluidoPor = undefined;
+          item.delineation.concluidoEm = undefined;
+          if (item.status === "Delineated") {
+            recordSubItemStatusChange(
+              draft,
+              item,
+              "FabDelineation",
+              vars.by,
+              "industrialEngineering",
+              "Delineamento reaberto para revisão",
+              when,
+            );
+          }
         }
         item.fabricationBudget = BudgetService.recalcFabricationBudget(
           delineationToBudget(draft, item),
@@ -469,30 +607,68 @@ export function useDeleteQuotationPackage(
 }
 
 interface ISelectQuotationVars {
-  subItemId: string;
+  subItemIds: string[];
   quotationId: string;
   by: string;
 }
 
+interface ISelectQuotationContext {
+  previous?: IFabricationRequest;
+}
+
+// Aceita vários itens de uma vez (seleção em massa) e reflete a escolha na hora — o rollup
+// financeiro chega no refetch.
 export function useSelectQuotation(
   fid: string,
-): UseMutationResult<IFabricationRequest, unknown, ISelectQuotationVars> {
+): UseMutationResult<
+  IFabricationRequest,
+  unknown,
+  ISelectQuotationVars,
+  ISelectQuotationContext
+> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: ISelectQuotationVars) =>
       RequestService.updateSection(fid, (draft) => {
-        const item = draft.subItems.filter((s) => s.id === vars.subItemId)[0];
-        if (item) item.selectedQuotationId = vars.quotationId;
+        const ids = new Set(vars.subItemIds);
+        const touched: string[] = [];
+        for (const item of draft.subItems) {
+          if (!ids.has(item.id)) continue;
+          item.selectedQuotationId = vars.quotationId;
+          touched.push(item.pn);
+        }
+        if (touched.length === 0) return;
         draft.partsBudget = derivePartsBudget(draft);
         recomputeFinancials(draft);
+        const supplier = (draft.quotationPackages ?? []).filter(
+          (p) => p.id === vars.quotationId,
+        )[0]?.supplier;
         draft.history.push({
           ts: new Date().toISOString(),
           by: vars.by,
           type: "quotation:select",
-          message: `Cotação selecionada — ${item?.pn ?? vars.subItemId}`,
+          message: `Cotação selecionada${supplier ? ` (${supplier})` : ""} — ${touched.join(", ")}`,
         });
       }),
-    onSuccess: invalidateFid(qc, fid),
+    onMutate: async (vars): Promise<ISelectQuotationContext> => {
+      await qc.cancelQueries({ queryKey: queryKeys.fid(fid) });
+      const previous = qc.getQueryData<IFabricationRequest>(queryKeys.fid(fid));
+      if (previous) {
+        const ids = new Set(vars.subItemIds);
+        qc.setQueryData(queryKeys.fid(fid), {
+          ...previous,
+          subItems: previous.subItems.map((s) =>
+            ids.has(s.id) ? { ...s, selectedQuotationId: vars.quotationId } : s,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous)
+        qc.setQueryData(queryKeys.fid(fid), context.previous);
+    },
+    onSettled: invalidateFid(qc, fid),
   });
 }
 
@@ -568,12 +744,19 @@ export function useAddComment(
   return useMutation({
     mutationFn: (vars: IAddCommentVars) =>
       RequestService.updateSection(fid, (draft) => {
+        const when = new Date().toISOString();
         draft.comments = (draft.comments ?? []).concat({
           id: `c-${Date.now()}`,
           author: vars.author,
           text: vars.text,
-          ts: new Date().toISOString(),
+          ts: when,
           section: vars.section,
+        });
+        draft.history.push({
+          ts: when,
+          by: vars.author.name,
+          type: "comment:add",
+          message: `Comentário adicionado: “${truncate(vars.text)}”`,
         });
       }),
     onSuccess: invalidateFid(qc, fid),
@@ -582,7 +765,10 @@ export function useAddComment(
 
 interface ISaveNotesVars {
   section: string;
+  /** Human label of the section, used in the activity log. */
+  sectionLabel: string;
   text: string;
+  by: string;
 }
 
 export function useSaveNotes(
@@ -592,7 +778,20 @@ export function useSaveNotes(
   return useMutation({
     mutationFn: (vars: ISaveNotesVars) =>
       RequestService.updateSection(fid, (draft) => {
+        const when = new Date().toISOString();
         draft.notes = { ...(draft.notes ?? {}), [vars.section]: vars.text };
+        draft.notesMeta = {
+          ...(draft.notesMeta ?? {}),
+          [vars.section]: { by: vars.by, at: when },
+        };
+        draft.history.push({
+          ts: when,
+          by: vars.by,
+          type: "notes:save",
+          message: vars.text.trim()
+            ? `${vars.sectionLabel} atualizada: “${truncate(vars.text)}”`
+            : `${vars.sectionLabel} limpa.`,
+        });
       }),
     onSuccess: invalidateFid(qc, fid),
   });
@@ -631,10 +830,11 @@ export function usePatchSubItem(): UseMutationResult<
             item,
             status,
             vars.by,
-            subItemOwnersOf(item.strategy)[0],
+            subItemOwnersOf(item.strategy, item.makeSite)[0],
           );
         }
         recomputeFinancials(draft);
+        syncAttendanceFromStrategies(draft, vars.by);
       }),
     onSuccess: (_d, vars) =>
       Promise.all([

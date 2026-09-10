@@ -7,7 +7,7 @@ import {
 } from "../models";
 import { TeamKey } from "../config/teams";
 import { REQUEST_STATUS_MAP, SUB_ITEM_STATUS_MAP } from "../config/statuses";
-import { phaseOfStatus } from "./statusHelpers";
+import { isTerminalStatus, phaseOfStatus } from "./statusHelpers";
 import { calcDurationHours } from "./durationHelpers";
 
 function closeOpen<
@@ -158,4 +158,41 @@ export function entryDurationHours(
   if (entry.end) return calcDurationHours(entry.start, entry.end);
   const ref = frozenTime ?? Date.now();
   return Math.max(0, (ref - new Date(entry.start).getTime()) / 3600000);
+}
+
+/** Instant the counters stop; `undefined` keeps them ticking. */
+export function timelineFreezeTime(
+  data: IFabricationRequest,
+): number | undefined {
+  if (!isTerminalStatus(data.status)) return undefined;
+  const iso =
+    data.dates.dataAprovacaoPetrobras ?? data.dates.dataEnvioPetrobras;
+  if (!iso) return undefined;
+  const ts = new Date(iso).getTime();
+  return isNaN(ts) ? undefined : ts;
+}
+
+/** When the FID started counting — demand receipt, falling back to the first log entry. */
+export function requestStart(data: IFabricationRequest): string | undefined {
+  return data.dates.recebimentoDemanda ?? data.history[0]?.ts;
+}
+
+/** Start of the open phase interval; FIDs without a timeline fall back to creation. */
+export function currentPhaseStart(
+  data: IFabricationRequest,
+): string | undefined {
+  return (
+    (data.phaseHistory ?? []).filter((e) => !e.end).pop()?.start ??
+    requestStart(data)
+  );
+}
+
+/** Start of the open status interval; FIDs without a timeline fall back to creation. */
+export function currentStatusStart(
+  data: IFabricationRequest,
+): string | undefined {
+  return (
+    (data.statusHistory ?? []).filter((e) => !e.end).pop()?.start ??
+    requestStart(data)
+  );
 }

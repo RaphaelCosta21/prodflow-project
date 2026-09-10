@@ -1,4 +1,5 @@
 import {
+  ISubItem,
   MakeSite,
   Phase,
   RequestStatus,
@@ -103,6 +104,7 @@ const MAKE_PHASE2: SubItemStatus[] = [
 ];
 
 // Buy behaves the same in both workflows; Make only exists in fabrication.
+// Make · SUBCON é fabricação externa: na fase 1 quem cota é Compras, não a Eng. Industrial.
 export function allowedSubItemStatuses(
   strategy: Strategy | undefined,
   makeSite: MakeSite | undefined,
@@ -110,7 +112,7 @@ export function allowedSubItemStatuses(
 ): SubItemStatus[] {
   if (!strategy || strategy === "NA") return ["NotStarted"];
   if (strategy === "Buy") return phase === 1 ? BUY_PHASE1 : BUY_PHASE2;
-  if (phase === 1) return MAKE_PHASE1;
+  if (phase === 1) return makeSite === "Subcon" ? BUY_PHASE1 : MAKE_PHASE1;
   return makeSite === "Subcon"
     ? MAKE_PHASE2.concat("ExternalService")
     : MAKE_PHASE2;
@@ -128,4 +130,19 @@ export function initialSubItemStatus(
 /** Phase-1 costing is done: Buy is quoted, Make is delineated. */
 export function isSubItemCosted(status: SubItemStatus): boolean {
   return status === "Quoted" || status === "Delineated";
+}
+
+type SubItemRoute = Pick<ISubItem, "strategy" | "makeSite">;
+
+/** Fabricado na base — único caso que passa pelo delineamento interno da Eng. Industrial. */
+export function isInternalMake(item: SubItemRoute): boolean {
+  return item.strategy === "Make" && item.makeSite !== "Subcon";
+}
+
+/** Comprado ou fabricado fora — vai para a fila de cotação de Compras/SCM. */
+export function isQuotedRoute(item: SubItemRoute): boolean {
+  return (
+    item.strategy === "Buy" ||
+    (item.strategy === "Make" && item.makeSite === "Subcon")
+  );
 }

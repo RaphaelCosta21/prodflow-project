@@ -12,7 +12,7 @@ import { useUIStore } from "../../stores/useUIStore";
 import { BudgetService } from "../../services/BudgetService";
 import { delineationToBudget } from "../../utils/delineationToBudget";
 import { derivePartsBudget, makeItems } from "../../utils/partsBudgetBuilder";
-import { exportPartsBudgetDoc } from "../../utils/exportPartsBudgetDoc";
+import { exportPartsBudgetPdf } from "../../utils/exportPartsBudgetPdf";
 import { formatCurrencyBRL } from "../../utils/formatters";
 import { isSubItemCosted } from "../../config/workflows";
 import GlassCard from "../common/GlassCard";
@@ -42,6 +42,7 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
   const addToast = useUIStore((s) => s.addToast);
   const updateParts = useUpdatePartsBudget(fid);
   const [openMask, setOpenMask] = React.useState<string | undefined>();
+  const [generating, setGenerating] = React.useState(false);
 
   const makes = makeItems(data);
   const parts = React.useMemo(() => derivePartsBudget(data), [data]);
@@ -150,17 +151,42 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
               <Button
                 size="small"
                 appearance="primary"
+                disabled={generating}
                 icon={<ArrowDownload20Regular />}
                 onClick={() => {
-                  exportPartsBudgetDoc(data, parts);
-                  addToast("Relatório gerado.", "success");
+                  setGenerating(true);
+                  exportPartsBudgetPdf(data, parts)
+                    .then((r) => {
+                      setGenerating(false);
+                      addToast(
+                        r.skipped.length > 0
+                          ? `Relatório gerado. Cotações não anexadas: ${r.skipped.join(", ")}.`
+                          : `Relatório gerado com ${r.attached} cotação(ões) anexada(s).`,
+                        r.skipped.length > 0 ? "warning" : "success",
+                      );
+                    })
+                    .catch(() => {
+                      setGenerating(false);
+                      addToast("Falha ao gerar o relatório.", "error");
+                    });
                 }}
               >
-                Gerar Word
+                {generating ? "Gerando…" : "Gerar PDF"}
               </Button>
             </div>
           }
         >
+          <Field
+            className={styles.partsProject}
+            label="Projeto"
+            hint="Sai no cabeçalho do relatório; vem da Descrição da Visão Geral."
+          >
+            <Input
+              value={parts.projeto}
+              onChange={(_, d) => saveParts({ projeto: d.value })}
+            />
+          </Field>
+
           <div className={styles.partsHeader}>
             <Field label="Nº do orçamento">
               <Input

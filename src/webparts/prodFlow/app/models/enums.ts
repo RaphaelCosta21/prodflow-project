@@ -1,7 +1,11 @@
 // Domain enums / union types for the FID model (see PRODFLOW-PROJECT-PLAN.md §11).
 
 export type Complexity = "Baixa" | "Média" | "Alta" | "N/A" | "A definir";
-export type Attendance = "Interna" | "Externa"; // na base / fora da base
+// Interna = na base · Externa = fora da base · Híbrido = os dois (Make·IH + Make·SUB na mesma BOM).
+export type Attendance = "Interna" | "Externa" | "Híbrido" | "A definir";
+// A BOM line is always executed on one side only, and the SLA matrix has one column per side.
+export type SubItemAttendance = "Interna" | "Externa";
+export type SlaAttendance = SubItemAttendance;
 // "NA" = linha pai delineada pelos próprios filhos; não gera custo nem relatório.
 export type Strategy = "Make" | "Buy" | "NA";
 export type BuyType = "RawMaterial" | "CommercialItem"; // COTS
@@ -9,7 +13,8 @@ export type MakeSite = "InHouse" | "Subcon";
 export type Phase = 1 | 2;
 
 // CRD/OII identify header attachments; BR/OII also tag the per-sub-item drawings.
-export type AttachmentCategory = "CRD" | "OII" | "BR";
+// DEL = documento de delineamento de fabricação interna (único por FID).
+export type AttachmentCategory = "CRD" | "OII" | "BR" | "DEL";
 
 // Which of the two workflows a FID follows — decided by `tipoOrcamento` at creation.
 export type WorkflowKind = "fabrication" | "parts";

@@ -1,9 +1,9 @@
 import {
-  Attendance,
   BuyType,
   Complexity,
   MakeSite,
   Strategy,
+  SubItemAttendance,
   SubItemStatus,
 } from "./enums";
 import { TeamKey } from "../config/teams";
@@ -48,9 +48,7 @@ export interface IDelineation {
   inspecaoDimensional: boolean;
   horasInspecao: number;
   materials: IDelineationMaterial[];
-  eps?: string;
   inspections?: string[];
-  consumables?: string;
   rawMaterial?: string; // legado (texto livre) — substituído por `materials`
   notes?: string;
   revision: string;
@@ -100,7 +98,7 @@ export interface ISubItem {
   strategy?: Strategy;
   buyType?: BuyType;
   makeSite?: MakeSite;
-  attendance: Attendance;
+  attendance: SubItemAttendance;
   complexity: Complexity;
   status: SubItemStatus;
   /** Status to return to when leaving `OnHold`. */

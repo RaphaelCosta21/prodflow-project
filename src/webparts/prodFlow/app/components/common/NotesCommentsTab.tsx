@@ -50,9 +50,14 @@ export const NotesCommentsTab: React.FC<INotesCommentsTabProps> = ({
     [data.comments],
   );
 
-  const persist = (section: string): void =>
+  const persist = (section: string, sectionLabel: string): void =>
     saveNotes.mutate(
-      { section, text: drafts[section] ?? "" },
+      {
+        section,
+        sectionLabel,
+        text: drafts[section] ?? "",
+        by: user.displayName,
+      },
       { onSuccess: () => addToast("Notas salvas.", "success") },
     );
 
@@ -70,35 +75,44 @@ export const NotesCommentsTab: React.FC<INotesCommentsTabProps> = ({
   return (
     <div className={styles.wrap}>
       <div className={styles.notesGrid}>
-        {SECTIONS.map((s) => (
-          <GlassCard
-            key={s.key}
-            title={s.label}
-            actions={
-              <Button
-                size="small"
-                icon={<Save20Regular />}
-                disabled={
-                  (drafts[s.key] ?? "") === ((data.notes ?? {})[s.key] ?? "") ||
-                  saveNotes.isLoading
-                }
-                onClick={() => persist(s.key)}
-              >
-                Salvar
-              </Button>
-            }
-          >
-            <Textarea
-              className={styles.notesArea}
-              resize="vertical"
-              placeholder="Escreva aqui…"
-              value={drafts[s.key] ?? ""}
-              onChange={(_, d) =>
-                setDrafts((n) => ({ ...n, [s.key]: d.value }))
+        {SECTIONS.map((s) => {
+          const meta = (data.notesMeta ?? {})[s.key];
+          return (
+            <GlassCard
+              key={s.key}
+              title={s.label}
+              subtitle={
+                meta
+                  ? `${meta.by} · ${formatDateTime(meta.at)}`
+                  : "Ainda não editada"
               }
-            />
-          </GlassCard>
-        ))}
+              actions={
+                <Button
+                  size="small"
+                  icon={<Save20Regular />}
+                  disabled={
+                    (drafts[s.key] ?? "") ===
+                      ((data.notes ?? {})[s.key] ?? "") || saveNotes.isLoading
+                  }
+                  onClick={() => persist(s.key, s.label)}
+                >
+                  Salvar
+                </Button>
+              }
+            >
+              <Textarea
+                className={styles.notesArea}
+                textarea={{ className: styles.notesInput }}
+                resize="vertical"
+                placeholder="Escreva aqui…"
+                value={drafts[s.key] ?? ""}
+                onChange={(_, d) =>
+                  setDrafts((n) => ({ ...n, [s.key]: d.value }))
+                }
+              />
+            </GlassCard>
+          );
+        })}
       </div>
 
       <GlassCard
@@ -108,6 +122,7 @@ export const NotesCommentsTab: React.FC<INotesCommentsTabProps> = ({
         <div className={styles.composer}>
           <Textarea
             className={styles.composerArea}
+            textarea={{ className: styles.composerInput }}
             resize="vertical"
             placeholder="Comente algo sobre este FID…"
             value={comment}

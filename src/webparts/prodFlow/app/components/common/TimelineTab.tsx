@@ -10,8 +10,13 @@ import { phasesFor } from "../../config/phases";
 import { workflowOf } from "../../config/workflows";
 import { useStatusColors } from "../../hooks/useStatusColors";
 import { useLiveElapsed } from "../../hooks/useLiveElapsed";
-import { isTerminalStatus } from "../../utils/statusHelpers";
-import { entryDurationHours } from "../../utils/historyHelpers";
+import {
+  currentPhaseStart,
+  currentStatusStart,
+  entryDurationHours,
+  requestStart,
+  timelineFreezeTime,
+} from "../../utils/historyHelpers";
 import {
   formatDurationFromHours,
   formatLiveElapsed,
@@ -30,28 +35,15 @@ export const TimelineTab: React.FC<ITimelineTabProps> = ({ data }) => {
   const colors = useStatusColors();
   const flow = workflowOf(data.tipoOrcamento);
   const phases = phasesFor(flow);
-  const frozen = isTerminalStatus(data.status);
-  const frozenTime = frozen
-    ? new Date(
-        data.dates.dataAprovacaoPetrobras ??
-          data.dates.dataEnvioPetrobras ??
-          "",
-      ).getTime() || undefined
-    : undefined;
+  const frozenTime = timelineFreezeTime(data);
 
   const phaseHistory = data.phaseHistory ?? [];
   const statusHistory = data.statusHistory ?? [];
-  const openPhase = phaseHistory.filter((e) => !e.end).pop();
-  const openStatus = statusHistory.filter((e) => !e.end).pop();
 
-  const livePhase = useLiveElapsed(
-    !frozen && openPhase ? openPhase.start : undefined,
-  );
-  const liveStatus = useLiveElapsed(
-    !frozen && openStatus ? openStatus.start : undefined,
-  );
+  const livePhase = useLiveElapsed(currentPhaseStart(data), frozenTime);
+  const liveStatus = useLiveElapsed(currentStatusStart(data), frozenTime);
 
-  const start = data.dates.recebimentoDemanda;
+  const start = requestStart(data);
   const totalElapsed = start
     ? formatLiveElapsed((frozenTime ?? Date.now()) - new Date(start).getTime())
     : "—";

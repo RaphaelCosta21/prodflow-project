@@ -1,10 +1,17 @@
-import { Attendance, Complexity, IFinancials, ISubItem } from "../models";
+import {
+  Attendance,
+  Complexity,
+  IFinancials,
+  ISubItem,
+  SlaAttendance,
+} from "../models";
 import { addBusinessDays, isOverdue } from "../utils/businessDays";
+import { slaFromRow } from "../utils/slaMatrix";
 
 // SLA de resposta do orçamento (§10.1) — dias ÚTEIS por complexidade × atendimento.
 const SLA_MATRIX: Record<
   "Baixa" | "Média" | "Alta",
-  Record<Attendance, number>
+  Record<SlaAttendance, number>
 > = {
   Baixa: { Interna: 1, Externa: 5 },
   Média: { Interna: 3, Externa: 10 },
@@ -35,7 +42,7 @@ export class SlaService {
     attendance: Attendance,
   ): number {
     const row = SLA_MATRIX[complexity as "Baixa" | "Média" | "Alta"];
-    return row ? row[attendance] : 0;
+    return row ? slaFromRow(row, attendance) : 0;
   }
 
   // Prazo p/ envio à Petrobras = Solicitação de Orçamento + Prazo(dias úteis, feriados BR).

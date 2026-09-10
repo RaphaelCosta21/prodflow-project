@@ -1,9 +1,10 @@
 import * as React from "react";
+import { Tooltip } from "@fluentui/react-components";
 import {
   ChevronDown20Regular,
   ChevronRight20Regular,
 } from "@fluentui/react-icons";
-import { IFabricationRequest, ISubItem } from "../../models";
+import { IFabricationRequest, ISubItem, Phase } from "../../models";
 import { strategyKeyOf } from "../../config/strategyOptions";
 import { PATHWAYS, pathwayStepOf } from "../../config/pathways";
 import { workflowOf } from "../../config/workflows";
@@ -14,7 +15,7 @@ import { formatDurationFromHours } from "../../utils/durationHelpers";
 import { formatDate, formatDateTime } from "../../utils/formatters";
 import StatusBadge from "../common/StatusBadge";
 import EmptyState from "../common/EmptyState";
-import SubItemPathway from "./SubItemPathway";
+import SubItemPathway, { PathwayPhaseToggle } from "./SubItemPathway";
 import styles from "./SubItemStatusList.module.scss";
 
 export interface ISubItemStatusListProps {
@@ -27,6 +28,7 @@ export const SubItemStatusList: React.FC<ISubItemStatusListProps> = ({
 }) => {
   const colors = useStatusColors();
   const [openId, setOpenId] = React.useState<string | undefined>();
+  const [phaseView, setPhaseView] = React.useState<Phase>(data.phase);
 
   if (data.subItems.length === 0) {
     return (
@@ -39,12 +41,21 @@ export const SubItemStatusList: React.FC<ISubItemStatusListProps> = ({
 
   return (
     <div className={styles.list}>
+      <div className={styles.toolbar}>
+        <span className={styles.toolbarLabel}>Roteiro exibido</span>
+        <PathwayPhaseToggle
+          value={phaseView}
+          onChange={setPhaseView}
+          fabricationUnlocked={data.phase >= 2}
+        />
+      </div>
       {data.subItems.map((item: ISubItem) => {
         const key = strategyKeyOf(item.strategy, item.buyType, item.makeSite);
         const team = item.ownerTeam ? TEAMS[item.ownerTeam] : undefined;
         const indent = { paddingLeft: (item.level - 1) * 20 };
         const history = item.statusHistory ?? [];
         const expanded = openId === item.id;
+        const isParentLine = item.strategy === "NA";
         return (
           <React.Fragment key={item.id}>
             <div className={styles.row}>
@@ -66,7 +77,16 @@ export const SubItemStatusList: React.FC<ISubItemStatusListProps> = ({
                 <span className={styles.desc}>{item.descricao}</span>
               </div>
               <div className={styles.meta}>
-                <StatusBadge kind="subitem" status={item.status} />
+                {isParentLine ? (
+                  <Tooltip
+                    content="Fluxo determinado pelos sub-itens."
+                    relationship="label"
+                  >
+                    <span className={styles.naBadge}>N/A</span>
+                  </Tooltip>
+                ) : (
+                  <StatusBadge kind="subitem" status={item.status} />
+                )}
                 {team && (
                   <span
                     className={styles.team}
@@ -84,10 +104,16 @@ export const SubItemStatusList: React.FC<ISubItemStatusListProps> = ({
                 )}
               </div>
               <div className={styles.pathwayCell}>
-                {key && PATHWAYS[key] ? (
+                {isParentLine ? (
+                  <span className={styles.parentLine}>
+                    Linha pai — o roteiro acontece nos sub-itens abaixo.
+                  </span>
+                ) : key && PATHWAYS[key] ? (
                   <SubItemPathway
                     strategyKey={key}
                     activeStep={key ? pathwayStepOf(key, item.status) : 0}
+                    phase={data.phase}
+                    view={phaseView}
                   />
                 ) : (
                   <span className={styles.noStrategy}>
@@ -97,34 +123,46 @@ export const SubItemStatusList: React.FC<ISubItemStatusListProps> = ({
               </div>
             </div>
             {expanded && (
-              <ol className={styles.history}>
-                {history.map((h) => (
-                  <li key={h.id} className={styles.historyEntry}>
-                    <span className={styles.historyOrder}>{h.id}</span>
-                    <span
-                      className={styles.historyDot}
-                      style={{
-                        background: colors.subItemStatus(h.status).color,
-                      }}
-                    />
-                    <span className={styles.historyLabel}>
-                      {h.from
-                        ? `${colors.subItemStatus(h.from).label} → ${colors.subItemStatus(h.status).label}`
-                        : colors.subItemStatus(h.status).label}
-                    </span>
-                    <span className={styles.historyActor}>{h.actor}</span>
-                    <span className={styles.historyTime}>
-                      {formatDateTime(h.start)}
-                    </span>
-                    <span className={styles.historyDuration}>
-                      {formatDurationFromHours(entryDurationHours(h))}
-                    </span>
-                    {h.note && (
-                      <span className={styles.historyNote}>{h.note}</span>
-                    )}
-                  </li>
-                ))}
-              </ol>
+              <div className={styles.historyPanel}>
+                <div className={styles.historyTitle}>
+                  Histórico de status — {item.pn}
+                </div>
+                <ol className={styles.history}>
+                  {history.map((h) => (
+                    <li key={h.id} className={styles.historyEntry}>
+                      <span
+                        className={styles.historyDot}
+                        style={{
+                          background: colors.subItemStatus(h.status).color,
+                        }}
+                      />
+                      <div className={styles.historyMain}>
+                        <span className={styles.historyLabel}>
+                          {h.from && (
+                            <>
+                              <span className={styles.historyFrom}>
+                                {colors.subItemStatus(h.from).label}
+                              </span>
+                              <span className={styles.historyArrow}>→</span>
+                            </>
+                          )}
+                          {colors.subItemStatus(h.status).label}
+                        </span>
+                        {h.note && (
+                          <span className={styles.historyNote}>{h.note}</span>
+                        )}
+                      </div>
+                      <span className={styles.historyActor}>{h.actor}</span>
+                      <span className={styles.historyTime}>
+                        {formatDateTime(h.start)}
+                      </span>
+                      <span className={styles.historyDuration}>
+                        {formatDurationFromHours(entryDurationHours(h))}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             )}
           </React.Fragment>
         );

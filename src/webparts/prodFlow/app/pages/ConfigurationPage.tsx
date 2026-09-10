@@ -16,8 +16,9 @@ import {
   Dismiss20Regular,
   ArrowReset20Regular,
 } from "@fluentui/react-icons";
-import { Attendance, Phase, RequestStatus, WorkflowKind } from "../models";
+import { Phase, RequestStatus, WorkflowKind } from "../models";
 import { TEAMS, TEAM_KEYS } from "../config/teams";
+import { SLA_ATTENDANCE_OPTIONS } from "../config/classificationOptions";
 import {
   ISubItemStatusDef,
   IStatusDef,
@@ -167,7 +168,7 @@ const NAV: { group: string; items: INavItem[] }[] = [
 
 const PERM_CYCLE: AccessPermission[] = ["none", "view", "edit"];
 const COMPLEXITIES: ("Baixa" | "Média" | "Alta")[] = ["Baixa", "Média", "Alta"];
-const ATTENDANCES: Attendance[] = ["Interna", "Externa"];
+const ATTENDANCES = SLA_ATTENDANCE_OPTIONS;
 
 const WORKFLOWS: { key: WorkflowKind; label: string }[] = [
   { key: "fabrication", label: "Fabricação" },

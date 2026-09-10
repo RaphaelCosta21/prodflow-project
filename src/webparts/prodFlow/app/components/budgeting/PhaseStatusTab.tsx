@@ -21,12 +21,14 @@ import { useStatusColors } from "../../hooks/useStatusColors";
 import { useStatusPermissions } from "../../hooks/useStatusPermissions";
 import { useLiveElapsed } from "../../hooks/useLiveElapsed";
 import { useUIStore } from "../../stores/useUIStore";
-import { isTerminalStatus } from "../../utils/statusHelpers";
-import { entryDurationHours } from "../../utils/historyHelpers";
 import {
-  calcElapsedDays,
-  formatDurationFromHours,
-} from "../../utils/durationHelpers";
+  currentPhaseStart,
+  currentStatusStart,
+  entryDurationHours,
+  requestStart,
+  timelineFreezeTime,
+} from "../../utils/historyHelpers";
+import { formatDurationFromHours } from "../../utils/durationHelpers";
 import { formatDateTime } from "../../utils/formatters";
 import GlassCard from "../common/GlassCard";
 import KPICard from "../common/KPICard";
@@ -60,22 +62,19 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
   const [target, setTarget] = React.useState<RequestStatus | undefined>();
   const [note, setNote] = React.useState("");
 
-  const frozen = isTerminalStatus(data.status);
+  const frozenTime = timelineFreezeTime(data);
   const openStatus = (data.statusHistory ?? []).filter((e) => !e.end).pop();
-  const liveStatus = useLiveElapsed(
-    !frozen && openStatus ? openStatus.start : undefined,
-  );
+  const phaseStart = currentPhaseStart(data);
+  const liveStatus = useLiveElapsed(currentStatusStart(data), frozenTime);
+  const livePhase = useLiveElapsed(phaseStart, frozenTime);
+  const liveTotal = useLiveElapsed(requestStart(data), frozenTime);
 
   const currentPhaseIndex = phases.findIndex((p) => p.phase === data.phase);
-  const totalDays = calcElapsedDays(data.dates.recebimentoDemanda);
-  const phaseDays = calcElapsedDays(
-    (data.phaseHistory ?? []).filter((e) => !e.end).pop()?.start,
-  );
-  const costed = data.subItems.filter(
-    (s) => isSubItemCosted(s.status) || s.strategy === "NA",
-  ).length;
-  const costedPct = data.subItems.length
-    ? Math.round((costed / data.subItems.length) * 100)
+  // "N/A" lines never get costed, so they must not dilute (nor inflate) the progress.
+  const costable = data.subItems.filter((s) => s.strategy !== "NA");
+  const costed = costable.filter((s) => isSubItemCosted(s.status)).length;
+  const costedPct = costable.length
+    ? Math.round((costed / costable.length) * 100)
     : 0;
 
   const confirm = (): void => {
@@ -135,9 +134,11 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
             const entry = (data.phaseHistory ?? []).filter(
               (e) => e.phase === phase.phase,
             )[0];
-            const duration = entry
-              ? formatDurationFromHours(entryDurationHours(entry))
-              : "";
+            const duration = current
+              ? livePhase
+              : entry
+                ? formatDurationFromHours(entryDurationHours(entry, frozenTime))
+                : "";
             return (
               <React.Fragment key={phase.key}>
                 <div className={styles.step}>
@@ -157,7 +158,12 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
                   </div>
                   <span className={styles.stepLabel}>{phase.label}</span>
                   {duration && (
-                    <span className={styles.stepDuration}>{duration}</span>
+                    <span
+                      className={`${styles.stepDuration} ${current ? styles.stepDurationLive : ""}`}
+                    >
+                      {current && <span className={styles.liveDot} />}
+                      {duration}
+                    </span>
                   )}
                 </div>
                 {idx < phases.length - 1 && (
@@ -172,15 +178,33 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
       </GlassCard>
 
       <div className={styles.kpiRow}>
-        <KPICard label="Dias na fase atual" value={`${phaseDays}d`} />
-        <KPICard label="Dias totais" value={`${totalDays}d`} />
         <KPICard
+          flat
+          label="Tempo na fase atual"
+          value={livePhase || "—"}
+          subtitle={
+            phaseStart ? `Desde ${formatDateTime(phaseStart)}` : undefined
+          }
+        />
+        <KPICard
+          flat
+          label="Tempo total"
+          value={liveTotal || "—"}
+          subtitle={
+            requestStart(data)
+              ? `Desde ${formatDateTime(requestStart(data))}`
+              : undefined
+          }
+        />
+        <KPICard
+          flat
           label="Sub-itens custeados"
           value={`${costedPct}%`}
-          subtitle={`${costed} de ${data.subItems.length}`}
+          subtitle={`${costed} de ${costable.length}`}
           progress={costedPct / 100}
         />
         <KPICard
+          flat
           label="Transições"
           value={String((data.statusHistory ?? []).length)}
           subtitle={`${(data.phaseHistory ?? []).length} de fase`}

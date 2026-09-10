@@ -70,7 +70,7 @@ export const FID_NAV_GROUPS: IFidNavGroup[] = [
       },
       {
         key: "delineation",
-        label: "Delineamento",
+        label: "Delin. Fab. Interna",
         icon: Ruler20Regular,
         ownerTeam: "industrialEngineering",
       },

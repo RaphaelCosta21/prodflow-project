@@ -67,6 +67,11 @@
 
 /* ── Partes e peças ── */
 
+.partsProject {
+  display: block;
+  margin-bottom: 12px;
+}
+
 .partsHeader {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

@@ -6,6 +6,8 @@ export interface IKPICardProps {
   value: string;
   subtitle?: string;
   accentColor?: string;
+  /** Drops the left accent border (cards that already sit next to a colored stepper). */
+  flat?: boolean;
   progress?: number; // 0..1
   trend?: { value: string; positive: boolean };
   children?: React.ReactNode; // sparkline slot
@@ -16,6 +18,7 @@ export const KPICard: React.FC<IKPICardProps> = ({
   value,
   subtitle,
   accentColor,
+  flat,
   progress,
   trend,
   children,
@@ -25,7 +28,10 @@ export const KPICard: React.FC<IKPICardProps> = ({
     : undefined;
 
   return (
-    <div className={styles.card} style={styleVar}>
+    <div
+      className={`${styles.card} ${flat ? styles.cardFlat : ""}`}
+      style={styleVar}
+    >
       <div className={styles.label}>{label}</div>
       <div className={styles.value}>{value}</div>
       {trend && (

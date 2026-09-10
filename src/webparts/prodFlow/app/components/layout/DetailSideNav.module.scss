@@ -132,6 +132,30 @@
   }
 }
 
+.itemDone {
+  .icon {
+    color: var(--success);
+  }
+}
+
+.doneIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--success);
+}
+
+// Marca discreta para o menu recolhido, onde não há espaço para o ícone completo.
+.doneDot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
 .icon {
   display: inline-flex;
   align-items: center;

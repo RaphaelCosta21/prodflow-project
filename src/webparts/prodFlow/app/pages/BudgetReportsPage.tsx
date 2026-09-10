@@ -6,7 +6,7 @@ import { useFidsFull } from "../api/fids";
 import { useUIStore } from "../stores/useUIStore";
 import { BudgetService } from "../services/BudgetService";
 import { exportBudgetExcel } from "../utils/exportBudgetExcel";
-import { exportPartsBudgetDoc } from "../utils/exportPartsBudgetDoc";
+import { exportPartsBudgetPdf } from "../utils/exportPartsBudgetPdf";
 import { delineationToBudget } from "../utils/delineationToBudget";
 import { derivePartsBudget, makeItems } from "../utils/partsBudgetBuilder";
 import { formatCurrencyBRL, formatDate } from "../utils/formatters";
@@ -82,7 +82,16 @@ export const BudgetReportsPage: React.FC = () => {
     setBusyKey(row.key);
     try {
       if (row.kind === "parts") {
-        exportPartsBudgetDoc(row.request, derivePartsBudget(row.request));
+        const result = await exportPartsBudgetPdf(
+          row.request,
+          derivePartsBudget(row.request),
+        );
+        if (result.skipped.length > 0) {
+          addToast(
+            `Cotações não anexadas: ${result.skipped.join(", ")}.`,
+            "warning",
+          );
+        }
       } else {
         await exportBudgetExcel(row.request, row.subItem);
       }
@@ -125,7 +134,7 @@ export const BudgetReportsPage: React.FC = () => {
         </GlassCard>
       ) : (
         <GlassCard
-          subtitle="Fabricação sai no template oficial da Petrobras; partes e peças, em Word"
+          subtitle="Fabricação sai no template oficial da Petrobras; partes e peças, em PDF com as cotações anexadas"
           noBodyPadding
         >
           <div className={styles.table}>
@@ -160,7 +169,7 @@ export const BudgetReportsPage: React.FC = () => {
                     download(row).catch(() => undefined);
                   }}
                 >
-                  {row.kind === "parts" ? "Word" : "Excel"}
+                  {row.kind === "parts" ? "PDF" : "Excel"}
                 </Button>
               </div>
             ))}

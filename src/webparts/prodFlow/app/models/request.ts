@@ -15,6 +15,11 @@ export interface IHistoryEvent {
   message: string;
 }
 
+export interface INoteMeta {
+  by: string;
+  at: string;
+}
+
 export interface IRequestDates {
   recebimentoDemanda?: string;
   solicitacaoOrcamento?: string;
@@ -30,6 +35,17 @@ export interface IApproval {
   by: string;
   date: string;
   signatureRef?: string;
+}
+
+// KPI de SLA congelado no momento do envio do orçamento à Petrobras.
+export interface IBudgetSlaResult {
+  prazo: string;
+  envio: string;
+  onTime: boolean;
+  atrasoDiasUteis: number;
+  atrasoDiasCorridos: number;
+  registradoEm: string;
+  registradoPor: string;
 }
 
 export interface IMedicao {
@@ -58,6 +74,7 @@ export interface IFabricationRequest {
   /** Status to return to when leaving `OnHold`. */
   resumeStatus?: RequestStatus;
   dates: IRequestDates;
+  slaOrcamento?: IBudgetSlaResult;
   /** @deprecated Orçamento migrou para `subItems[].fabricationBudget` + `partsBudget`. */
   budget: IBudget;
   partsBudget?: IPartsBudget;
@@ -72,6 +89,8 @@ export interface IFabricationRequest {
   phaseHistory?: IPhaseHistoryEntry[];
   statusHistory?: IStatusHistoryEntry[];
   notes?: Record<string, string>;
+  /** Who last saved each note section and when (same keys as `notes`). */
+  notesMeta?: Record<string, INoteMeta>;
   comments?: IComment[];
   attachments: IAttachmentRef[];
 }

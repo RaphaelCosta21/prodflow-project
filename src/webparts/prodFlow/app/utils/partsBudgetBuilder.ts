@@ -1,6 +1,10 @@
 import { IFabricationRequest, IPartsBudget, ISubItem } from "../models";
 import { calcPartsCost, sumPartsBudget } from "./partsBudgetCalc";
-import { selectedLineFor, selectedPackageFor } from "./quotationHelpers";
+import {
+  leadTimeOf,
+  selectedLineFor,
+  selectedPackageFor,
+} from "./quotationHelpers";
 
 export function buyLeaves(request: IFabricationRequest): ISubItem[] {
   return request.subItems.filter((s) => s.strategy === "Buy");
@@ -35,14 +39,15 @@ export function derivePartsBudget(request: IFabricationRequest): IPartsBudget {
       impostosUnit: cost.impostosUnit,
       custoTotalUnit: cost.custoTotalUnit,
       total: cost.total,
-      prazoEntrega: quote?.prazoEntrega,
+      prazoEntrega: leadTimeOf(pkg, quote),
     };
   });
 
   return {
     contrato: saved?.contrato ?? request.budget?.contrato ?? "4600684130",
+    projeto: saved?.projeto ?? request.descricao ?? "",
     numeroOrcamento: saved?.numeroOrcamento ?? "",
-    revisao: saved?.revisao,
+    revisao: saved?.revisao ?? "1",
     data: saved?.data,
     validadeDias: saved?.validadeDias ?? 5,
     observacoes: saved?.observacoes,

@@ -29,6 +29,10 @@ import {
   budgetTypeOptions,
 } from "../../config/appConfigDefaults";
 import {
+  ATTENDANCE_OPTIONS,
+  COMPLEXITY_OPTIONS,
+} from "../../config/classificationOptions";
+import {
   IPendingAttachment,
   useUploadAttachments,
 } from "../../api/attachments";
@@ -40,14 +44,8 @@ import { fidDetailPath } from "../../config/routes";
 import prodflowSymbol from "../../../assets/brand/prodflow-symbol.svg";
 import styles from "./CreateFidWizard.module.scss";
 
-const COMPLEXITIES: Complexity[] = [
-  "Baixa",
-  "Média",
-  "Alta",
-  "N/A",
-  "A definir",
-];
-const ATTENDANCES: Attendance[] = ["Interna", "Externa"];
+const COMPLEXITIES = COMPLEXITY_OPTIONS;
+const ATTENDANCES = ATTENDANCE_OPTIONS;
 const OS_PREFIX = "6000";
 
 interface IStep {
@@ -96,7 +94,7 @@ function initialForm(user: string): INewRequestInput {
     tipoOrcamento: "Fabricação",
     complexidadeUsinagem: "A definir",
     complexidadeCaldeiraria: "A definir",
-    atendimento: "Interna",
+    atendimento: "A definir",
     solicitacaoOrcamento: new Date().toISOString().slice(0, 10),
     prazoDiasCorridos: undefined,
     createdBy: user,
@@ -599,12 +597,16 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                       <span className={styles.calloutItem}>
                         <span className={styles.calloutLabel}>Prazo</span>
                         <strong className={styles.calloutValue}>
-                          {prazoDiasUteis} dias úteis
+                          {prazoDiasUteis > 0
+                            ? `${prazoDiasUteis} dias úteis`
+                            : "a definir"}
                         </strong>
                       </span>
                       <span className={styles.calloutNote}>
                         Prazo para envio do orçamento à Petrobras, derivado da
-                        maior complexidade entre usinagem e caldeiraria.
+                        maior complexidade entre usinagem e caldeiraria. Campos
+                        “A definir” podem ser ajustados depois, na Visão Geral
+                        do FID.
                       </span>
                     </>
                   )}

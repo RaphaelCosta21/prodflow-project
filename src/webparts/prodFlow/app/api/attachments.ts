@@ -81,12 +81,15 @@ export function useUploadAttachments(): UseMutationResult<
       const failed: string[] = [];
       for (const item of vars.items) {
         try {
-          uploaded.push(
-            await AttachmentService.upload(vars.fid, item.file, {
-              category: item.category,
-              refCode: item.refCode,
-            }),
-          );
+          const ref = await AttachmentService.upload(vars.fid, item.file, {
+            category: item.category,
+            refCode: item.refCode,
+          });
+          uploaded.push({
+            ...ref,
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: vars.by,
+          });
         } catch {
           failed.push(item.file.name);
         }

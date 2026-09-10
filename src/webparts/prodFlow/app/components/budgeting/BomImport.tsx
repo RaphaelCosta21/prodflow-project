@@ -4,7 +4,7 @@ import {
   ArrowUpload24Regular,
   AddCircle24Regular,
 } from "@fluentui/react-icons";
-import { Attendance } from "../../models";
+import { SubItemAttendance } from "../../models";
 import { BomImportService } from "../../services/BomImportService";
 import { useImportBom } from "../../api/fids";
 import { useUIStore } from "../../stores/useUIStore";
@@ -12,7 +12,7 @@ import styles from "./BomImport.module.scss";
 
 export interface IBomImportProps {
   fid: string;
-  attendance: Attendance;
+  attendance: SubItemAttendance;
   canEdit?: boolean;
   /** Adds a blank root BOM line inline (dynamic building). */
   onAddItem?: () => void;

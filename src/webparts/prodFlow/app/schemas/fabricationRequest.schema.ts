@@ -10,8 +10,15 @@ export const complexitySchema = z.enum([
   "N/A",
   "A definir",
 ]);
-export const attendanceSchema = z.enum(["Interna", "Externa"]);
-export const attachmentCategorySchema = z.enum(["CRD", "OII", "BR"]);
+export const attendanceSchema = z.enum([
+  "Interna",
+  "Externa",
+  "Híbrido",
+  "A definir",
+]);
+// A BOM line runs on one side only — "Híbrido"/"A definir" are header-level values.
+export const subItemAttendanceSchema = z.enum(["Interna", "Externa"]);
+export const attachmentCategorySchema = z.enum(["CRD", "OII", "BR", "DEL"]);
 export const strategySchema = z.enum(["Make", "Buy", "NA"]);
 export const buyTypeSchema = z.enum(["RawMaterial", "CommercialItem"]);
 export const makeSiteSchema = z.enum(["InHouse", "Subcon"]);
@@ -116,9 +123,7 @@ export const delineationSchema = z.object({
       }),
     )
     .default([]),
-  eps: z.string().optional(),
   inspections: z.array(z.string()).optional(),
-  consumables: z.string().optional(),
   rawMaterial: z.string().optional(),
   notes: z.string().optional(),
   revision: z.string(),
@@ -170,7 +175,7 @@ export const subItemSchema: z.ZodTypeAny = z.lazy(() =>
     strategy: strategySchema.optional(),
     buyType: buyTypeSchema.optional(),
     makeSite: makeSiteSchema.optional(),
-    attendance: attendanceSchema,
+    attendance: subItemAttendanceSchema,
     complexity: complexitySchema,
     status: subItemStatusSchema,
     delineation: delineationSchema.optional(),
@@ -261,6 +266,7 @@ export const quotationPackageSchema = z.object({
 
 export const partsBudgetSchema = z.object({
   contrato: z.string(),
+  projeto: z.string().optional().default(""),
   numeroOrcamento: z.string(),
   revisao: z.string().optional(),
   data: z.string().optional(),
@@ -330,12 +336,24 @@ export const fabricationRequestSchema = z.object({
     prazoDiasUteis: z.number().optional(),
     prazoDiasCorridos: z.number().optional(),
   }),
+  slaOrcamento: z
+    .object({
+      prazo: z.string(),
+      envio: z.string(),
+      onTime: z.boolean(),
+      atrasoDiasUteis: z.number(),
+      atrasoDiasCorridos: z.number(),
+      registradoEm: z.string(),
+      registradoPor: z.string(),
+    })
+    .optional(),
   budget: budgetSchema,
   partsBudget: partsBudgetSchema.optional(),
   quotationPackages: z.array(quotationPackageSchema).optional(),
   phaseHistory: z.array(phaseHistorySchema).optional(),
   statusHistory: z.array(statusHistorySchema).optional(),
   notes: z.record(z.string()).optional(),
+  notesMeta: z.record(z.object({ by: z.string(), at: z.string() })).optional(),
   comments: z
     .array(
       z.object({

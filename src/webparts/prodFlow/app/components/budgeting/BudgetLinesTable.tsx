@@ -54,15 +54,28 @@ export const BudgetLinesTable: React.FC<IBudgetLinesTableProps> = ({
         const isNewCategory =
           mode === "materials" &&
           (i === 0 || line.categoria !== lines[i - 1].categoria);
+        // Tabela 2 labor repeats the same service across complexity rows (merged cell in the Excel template).
+        const isNewService =
+          mode === "labor" &&
+          (i === 0 || line.descricao !== lines[i - 1].descricao);
         const pesoTotal = BudgetService.computePesoTotal(line);
         return (
           <React.Fragment key={line.key ?? `${line.descricao}-${i}`}>
             {isNewCategory && (
               <div className={styles.categoryRow}>{line.categoria}</div>
             )}
-            <div className={`${styles.row} ${gridClass}`}>
-              <span className={styles.desc} title={line.descricao}>
-                {mode === "labor" ? line.categoria : line.descricao}
+            <div
+              className={`${styles.row} ${gridClass}${
+                isNewService && i > 0 ? ` ${styles.groupTop}` : ""
+              }`}
+            >
+              <span
+                className={`${styles.desc}${
+                  mode === "labor" ? ` ${styles.service}` : ""
+                }`}
+                title={line.descricao}
+              >
+                {mode === "labor" && !isNewService ? "" : line.descricao}
               </span>
               <span className={styles.mid}>
                 {mode === "materials"

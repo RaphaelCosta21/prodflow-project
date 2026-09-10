@@ -48,10 +48,12 @@ import { useAccessLevel } from "../../hooks/useAccessLevel";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useUIStore } from "../../stores/useUIStore";
 import { BomImportService } from "../../services/BomImportService";
+import { subItemAttendanceOf } from "../../utils/classification";
 import GlassCard from "../common/GlassCard";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
 import BomImport from "./BomImport";
+import ClassificationCard from "./ClassificationCard";
 import SubItemDrawings from "./SubItemDrawings";
 import styles from "./SubItemStrategyTab.module.scss";
 
@@ -543,7 +545,7 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
       parentId,
       level,
       findNumber: nextFindNumber(parentId),
-      attendance: data.atendimento,
+      attendance: subItemAttendanceOf(data.atendimento),
     });
     addSubItem.mutate(item, {
       onError: (e) => addToast(`Erro ao adicionar item: ${String(e)}`, "error"),
@@ -618,7 +620,7 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
       >
         <BomImport
           fid={fid}
-          attendance={data.atendimento}
+          attendance={subItemAttendanceOf(data.atendimento)}
           canEdit={canEdit}
           onAddItem={addRoot}
         />
@@ -632,13 +634,16 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
             : "Todas as linhas têm estratégia definida."
         }
         actions={
-          canEdit ? (
-            startButton
-          ) : (
-            <Tooltip content="Ação do time Planejamento" relationship="label">
-              <span>{startButton}</span>
-            </Tooltip>
-          )
+          <div className={styles.strategyActions}>
+            <ClassificationCard fid={fid} data={data} compact />
+            {canEdit ? (
+              startButton
+            ) : (
+              <Tooltip content="Ação do time Planejamento" relationship="label">
+                <span>{startButton}</span>
+              </Tooltip>
+            )}
+          </div>
         }
         noBodyPadding
       >

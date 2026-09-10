@@ -1,4 +1,4 @@
-import { RequestStatus, Strategy } from "../models";
+import { MakeSite, RequestStatus, Strategy } from "../models";
 import { TeamKey } from "./teams";
 
 // Planejamento/Projetos comandam a fase e o status do FID; admin ignora esta matriz.
@@ -43,9 +43,13 @@ export function ownersOf(status: RequestStatus): TeamKey[] {
   return REQUEST_STATUS_OWNERS[status] ?? [];
 }
 
-/** Sub-item status is driven by Compras when the line is bought, by Planejamento/Eng. Ind. when made. */
-export function subItemOwnersOf(strategy?: Strategy): TeamKey[] {
+/** Compras conduz linhas Buy e Make · SUBCON; Planejamento/Eng. Ind. conduzem o Make in-house. */
+export function subItemOwnersOf(
+  strategy?: Strategy,
+  makeSite?: MakeSite,
+): TeamKey[] {
   if (strategy === "Buy") return BUY_OWNERS;
-  if (strategy === "Make") return MAKE_OWNERS;
+  if (strategy === "Make")
+    return makeSite === "Subcon" ? BUY_OWNERS : MAKE_OWNERS;
   return [];
 }

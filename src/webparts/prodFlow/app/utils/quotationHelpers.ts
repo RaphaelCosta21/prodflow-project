@@ -25,6 +25,16 @@ export function lineFor(
   return pkg.lines.filter((l) => l.subItemId === subItemId)[0];
 }
 
+/** Prazo da linha (texto livre do fornecedor); cai para o lead time do pacote. */
+export function leadTimeOf(
+  pkg?: IQuotationPackage,
+  line?: IQuotationLine,
+): string {
+  if (line?.prazoEntrega?.trim()) return line.prazoEntrega.trim();
+  const days = line?.leadTimeDays ?? pkg?.leadTimeDays;
+  return days ? `${days} dias` : "";
+}
+
 export function selectedPackageFor(
   request: IFabricationRequest,
   subItem: ISubItem,
@@ -63,6 +73,25 @@ export function cheapestPackageId(
   return priced.sort(
     (a, b) => (a.line?.valorUnit ?? 0) - (b.line?.valorUnit ?? 0),
   )[0].p.id;
+}
+
+/**
+ * Quotes of the winning supplier of every Buy sub-item, in the order the items appear in the
+ * report — the losing bids never reach the customer-facing document.
+ */
+export function winningAttachments(
+  request: IFabricationRequest,
+): IAttachmentRef[] {
+  const winners: IQuotationPackage[] = [];
+  const seenPackage: { [id: string]: true } = {};
+  for (const subItem of request.subItems.filter((s) => s.strategy === "Buy")) {
+    const pkg = selectedPackageFor(request, subItem);
+    if (pkg && !seenPackage[pkg.id]) {
+      seenPackage[pkg.id] = true;
+      winners.push(pkg);
+    }
+  }
+  return distinctAttachments(winners);
 }
 
 /** One PDF may cover many sub-items — the report must attach it only once. */

@@ -74,6 +74,11 @@ export class AttachmentService {
     }
   }
 
+  /** Authenticated read of a stored attachment — `url` is already server-relative. */
+  public static async getBuffer(url: string): Promise<ArrayBuffer> {
+    return SPService.sp.web.getFileByServerRelativePath(url).getBuffer();
+  }
+
   public static async upload(
     fid: string,
     file: File,

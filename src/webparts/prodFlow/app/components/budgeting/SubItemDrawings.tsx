@@ -50,11 +50,15 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
 
   const drawings = subItem.drawings ?? [];
 
-  const persist = (next: IAttachmentRef[]): void => {
+  const persist = (
+    next: IAttachmentRef[],
+    log?: { type: string; message: string },
+  ): void => {
     update.mutate({
       subItemId: subItem.id,
       changes: { drawings: next },
       by: user.displayName,
+      log,
     });
   };
 
@@ -74,7 +78,12 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
           uploadedBy: user.displayName,
         });
       }
-      persist(drawings.concat(uploaded));
+      persist(drawings.concat(uploaded), {
+        type: "subitem:attachment-added",
+        message: `${subItem.pn}: desenho(s) anexado(s) — ${uploaded
+          .map((r) => r.name)
+          .join(", ")}`,
+      });
       addToast(`${uploaded.length} desenho(s) anexado(s).`, "success");
     } catch (e) {
       addToast(String(e), "error");
@@ -88,7 +97,13 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
     setBusy(true);
     try {
       await AttachmentService.remove(ref.url);
-      persist(drawings.filter((d) => d.url !== ref.url));
+      persist(
+        drawings.filter((d) => d.url !== ref.url),
+        {
+          type: "subitem:attachment-removed",
+          message: `${subItem.pn}: desenho removido — ${ref.name}`,
+        },
+      );
     } catch (e) {
       addToast(String(e), "error");
     } finally {

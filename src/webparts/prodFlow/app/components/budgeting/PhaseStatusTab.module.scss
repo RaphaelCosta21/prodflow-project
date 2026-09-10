@@ -61,6 +61,9 @@
 }
 
 .stepDuration {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 8px;
@@ -68,6 +71,11 @@
   background: var(--card-bg-elevated);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stepDurationLive {
+  color: var(--success);
 }
 
 .connector {
