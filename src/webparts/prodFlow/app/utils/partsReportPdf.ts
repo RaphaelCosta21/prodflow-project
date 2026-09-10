@@ -150,7 +150,7 @@ function drawHeaderTable(
         { index: 0, span: 1, text: "Ordem de Serviço:", bold: true },
         { index: 1, span: 1, text: request.osNumber, bold: true },
         { index: 2, span: 1, text: "Projeto:", bold: true },
-      { index: 3, span: 3, text: budget.projeto, bold: true },
+        { index: 3, span: 3, text: budget.projeto, bold: true },
       ],
       [
         { index: 0, span: 1, text: "Desenho:", bold: true },
