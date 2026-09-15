@@ -291,6 +291,30 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.revisionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-family: var(--fontFamilyBase);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+}
+
+.revisionMotivo {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--warning);
 }
 
 .desc {

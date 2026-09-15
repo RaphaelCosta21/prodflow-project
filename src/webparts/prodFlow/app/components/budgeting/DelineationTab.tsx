@@ -21,6 +21,7 @@ import {
   Save20Regular,
 } from "@fluentui/react-icons";
 import {
+  IBudgetReportRevision,
   IDelineation,
   IDelineationMaterial,
   IFabricationRequest,
@@ -54,11 +55,12 @@ import {
   withDerivedHh,
 } from "../../utils/requestFactory";
 import { formatDate } from "../../utils/formatters";
-import { stageIsLocked } from "../../utils/budgetApproval";
+import { revisionOfSubItem, stageIsLocked } from "../../utils/budgetApproval";
 import GlassCard from "../common/GlassCard";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
 import FidDrawingCard from "../common/FidDrawingCard";
+import ReportRevisionNote from "./ReportRevisionNote";
 import StageCompletionCard from "./StageCompletionCard";
 import SubItemDrawings from "./SubItemDrawings";
 import styles from "./DelineationTab.module.scss";
@@ -92,8 +94,9 @@ const DelineationForm: React.FC<{
   fid: string;
   subItem: ISubItem;
   canEdit: boolean;
+  revisao?: IBudgetReportRevision;
   onOpenDrawings: (subItem: ISubItem) => void;
-}> = ({ fid, subItem, canEdit, onOpenDrawings }) => {
+}> = ({ fid, subItem, canEdit, revisao, onOpenDrawings }) => {
   const user = useCurrentUser();
   const addToast = useUIStore((s) => s.addToast);
   const save = useUpdateDelineation(fid);
@@ -102,7 +105,7 @@ const DelineationForm: React.FC<{
     () => subItem.delineation ?? createEmptyDelineation(),
   );
   const [dirty, setDirty] = React.useState(false);
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(!!revisao);
   const [editing, setEditing] = React.useState(false);
   const editable = canEdit && editing;
 
@@ -289,6 +292,9 @@ const DelineationForm: React.FC<{
         </div>
       }
     >
+      {revisao && (
+        <ReportRevisionNote revisao={revisao} className={styles.revisionNote} />
+      )}
       {!expanded ? (
         <button
           type="button"
@@ -975,6 +981,7 @@ export const DelineationTab: React.FC<IDelineationTabProps> = ({
             fid={fid}
             subItem={s}
             canEdit={canEdit}
+            revisao={revisionOfSubItem(data, s.id)}
             onOpenDrawings={setDrawingsFor}
           />
         ))

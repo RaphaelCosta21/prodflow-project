@@ -18,6 +18,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Add20Regular,
+  ArrowSync16Filled,
   Attach16Regular,
   CheckmarkCircle20Regular,
   Delete16Regular,
@@ -52,7 +53,7 @@ import {
   quotationCountFor,
 } from "../../utils/quotationHelpers";
 import { formatCurrencyBRL, formatDate } from "../../utils/formatters";
-import { stageIsLocked } from "../../utils/budgetApproval";
+import { revisionOfSubItem, stageIsLocked } from "../../utils/budgetApproval";
 import GlassCard from "../common/GlassCard";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
@@ -652,6 +653,7 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
             const best = cheapestPackageId(covering, item.id);
             const chosen = item.selectedQuotationId ?? best;
             const chosenPkg = covering.filter((p) => p.id === chosen)[0];
+            const revisao = revisionOfSubItem(data, item.id);
             return (
               <div key={item.id} className={styles.matrixRow}>
                 <Checkbox
@@ -663,8 +665,26 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
                   }
                 />
                 <div className={styles.itemIdentity}>
-                  <span className={styles.pn}>{item.pn}</span>
+                  <span className={styles.pn}>
+                    {item.pn}
+                    {revisao && (
+                      <Tooltip
+                        content={`Revisão de ${revisao.solicitadoPor}: ${revisao.motivo}`}
+                        relationship="label"
+                      >
+                        <span className={styles.revisionChip}>
+                          <ArrowSync16Filled />
+                          Em revisão
+                        </span>
+                      </Tooltip>
+                    )}
+                  </span>
                   <span className={styles.desc}>{item.descricao}</span>
+                  {revisao && (
+                    <span className={styles.revisionMotivo}>
+                      {revisao.motivo}
+                    </span>
+                  )}
                 </div>
                 <Button
                   size="small"

@@ -153,6 +153,19 @@ export function openRevisions(
   return out;
 }
 
+/** Revisão aberta do relatório de um sub-item (delineamento interno ou SUBCON). */
+export function revisionOfSubItem(
+  request: IFabricationRequest,
+  subItemId: string,
+): IBudgetReportRevision | undefined {
+  const ref = listBudgetReports(request).filter(
+    (r) => r.subItem?.id === subItemId,
+  )[0];
+  if (!ref) return undefined;
+  const review = reviewFor(request, ref);
+  return review.status === "revision" ? review.revisaoAtual : undefined;
+}
+
 function countRouted(
   request: IFabricationRequest,
   match: (s: ISubItem) => boolean,

@@ -32,6 +32,7 @@ import {
   stageState,
 } from "../../utils/budgetApproval";
 import { formatDate } from "../../utils/formatters";
+import ReportRevisionNote from "./ReportRevisionNote";
 import styles from "./ReportReviewBar.module.scss";
 
 export interface IReportReviewBarProps {
@@ -141,29 +142,34 @@ export const ReportReviewBar: React.FC<IReportReviewBarProps> = ({
               </Tooltip>
             )}
             {review.status !== "revision" && (
-              <Button
-                size="small"
-                disabled={busy}
-                onClick={() => setDialogOpen(true)}
+              <Tooltip
+                content={
+                  stageReady
+                    ? "Devolver este relatório para correção"
+                    : `Aguarde a conclusão da etapa ${BUDGET_STAGE_LABEL[report.stage]}.`
+                }
+                relationship="label"
               >
-                Solicitar revisão
-              </Button>
+                <span>
+                  <Button
+                    size="small"
+                    disabled={!stageReady || busy}
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    Solicitar revisão
+                  </Button>
+                </span>
+              </Tooltip>
             )}
           </div>
         )}
       </div>
 
       {review.status === "revision" && review.revisaoAtual && (
-        <div className={styles.revisionNote}>
-          <span className={styles.revisionTitle}>
-            Revisão solicitada → {BUDGET_STAGE_LABEL[report.stage]}
-          </span>
-          <span className={styles.motivo}>{review.revisaoAtual.motivo}</span>
-          <span className={styles.meta}>
-            {review.revisaoAtual.solicitadoPor} ·{" "}
-            {formatDate(review.revisaoAtual.solicitadoEm)}
-          </span>
-        </div>
+        <ReportRevisionNote
+          revisao={review.revisaoAtual}
+          className={styles.revisionNote}
+        />
       )}
 
       <Dialog

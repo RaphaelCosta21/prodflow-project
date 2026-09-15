@@ -1138,6 +1138,11 @@ export function useRequestBudgetReportRevision(
           (r) => r.key === vars.key,
         )[0];
         if (!ref) throw new Error("Relatório não encontrado.");
+        if (!stageState(draft, ref.stage).concluido) {
+          throw new Error(
+            `Etapa ${BUDGET_STAGE_LABEL[ref.stage]} ainda não foi concluída.`,
+          );
+        }
 
         const when = new Date().toISOString();
         const review = ensureReview(draft, ref);
