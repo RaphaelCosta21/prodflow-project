@@ -94,6 +94,14 @@
   max-width: 96px;
 }
 
+.qtdText {
+  display: block;
+  padding-right: 10px;
+  text-align: right;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
 .peso {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;

@@ -13,6 +13,11 @@
   --notice-bg: var(--info-bg);
 }
 
+.success {
+  --notice-fg: var(--success);
+  --notice-bg: var(--success-bg);
+}
+
 .warning {
   --notice-fg: var(--warning);
   --notice-bg: var(--warning-bg);

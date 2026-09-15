@@ -21,6 +21,8 @@ export interface IStrategyOption {
   parentOnly?: boolean;
 }
 
+export type StrategyAudience = "planning" | "industrialEngineering" | "admin";
+
 export const STRATEGY_OPTIONS: IStrategyOption[] = [
   {
     key: "buyRaw",
@@ -62,12 +64,16 @@ export const STRATEGY_OPTIONS: IStrategyOption[] = [
 export function strategyOptionsFor(
   hasChildren: boolean,
   flow: WorkflowKind = "fabrication",
+  audience: StrategyAudience = "admin",
 ): IStrategyOption[] {
-  return STRATEGY_OPTIONS.filter(
-    (o) =>
-      (!o.parentOnly || hasChildren) &&
-      (flow !== "parts" || o.strategy !== "Make"),
-  );
+  return STRATEGY_OPTIONS.filter((o) => {
+    if (o.parentOnly && !hasChildren) return false;
+    if (flow === "parts" && o.strategy === "Make") return false;
+    if (audience === "planning") return o.strategy !== "Make";
+    if (audience === "industrialEngineering")
+      return o.strategy === "Make" && !o.parentOnly;
+    return true;
+  });
 }
 
 export function strategyKeyOf(

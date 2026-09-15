@@ -7,12 +7,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Dropdown,
-  Option,
   Spinner,
 } from "@fluentui/react-components";
-import { Delete16Regular, Open16Regular } from "@fluentui/react-icons";
-import { AttachmentCategory, IAttachmentRef, ISubItem } from "../../models";
+import {
+  ArrowUpload20Regular,
+  Delete16Regular,
+  Open16Regular,
+} from "@fluentui/react-icons";
+import { IAttachmentRef, ISubItem } from "../../models";
 import { ACCEPTED_ATTACHMENT_ACCEPT } from "../../config/attachments";
 import { AttachmentService } from "../../services/AttachmentService";
 import { useUpdateSubItem } from "../../api/fids";
@@ -28,11 +30,6 @@ export interface ISubItemDrawingsProps {
   onClose: () => void;
 }
 
-const DRAWING_CATEGORIES: { key: AttachmentCategory; label: string }[] = [
-  { key: "BR", label: "Desenho BR" },
-  { key: "OII", label: "Desenho OII" },
-];
-
 export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
   fid,
   subItem,
@@ -43,7 +40,7 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
   const addToast = useUIStore((s) => s.addToast);
   const update = useUpdateSubItem(fid);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [category, setCategory] = React.useState<AttachmentCategory>("BR");
+  const [dragging, setDragging] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   if (!subItem) return null;
@@ -69,7 +66,7 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
       const uploaded: IAttachmentRef[] = [];
       for (let i = 0; i < files.length; i++) {
         const ref = await AttachmentService.upload(fid, files[i], {
-          category,
+          category: "BR",
           refCode: subItem.pn,
         });
         uploaded.push({
@@ -93,6 +90,12 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
     }
   };
 
+  const onDrop = (event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    setDragging(false);
+    if (!canEdit || busy) return;
+    onPick(event.dataTransfer.files).catch(() => undefined);
+  };
   const onRemove = async (ref: IAttachmentRef): Promise<void> => {
     setBusy(true);
     try {
@@ -121,31 +124,31 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
           </DialogTitle>
           <DialogContent>
             {canEdit && (
-              <div className={styles.uploadRow}>
-                <Dropdown
-                  size="small"
-                  value={
-                    DRAWING_CATEGORIES.filter((c) => c.key === category)[0]
-                      ?.label
-                  }
-                  selectedOptions={[category]}
-                  onOptionSelect={(_, d) =>
-                    setCategory(d.optionValue as AttachmentCategory)
-                  }
-                >
-                  {DRAWING_CATEGORIES.map((c) => (
-                    <Option key={c.key} value={c.key} text={c.label}>
-                      {c.label}
-                    </Option>
-                  ))}
-                </Dropdown>
+              <div
+                className={`${styles.dropzone} ${dragging ? styles.dropzoneActive : ""}`}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragOver={(event) => event.preventDefault()}
+                onDragLeave={(event) => {
+                  event.preventDefault();
+                  setDragging(false);
+                }}
+                onDrop={onDrop}
+              >
+                <ArrowUpload20Regular className={styles.dropIcon} />
+                <div className={styles.dropText}>
+                  <strong>Arraste os desenhos aqui</strong>
+                  <span>ou selecione arquivos do computador</span>
+                </div>
                 <Button
                   appearance="primary"
                   size="small"
                   disabled={busy}
                   onClick={() => inputRef.current?.click()}
                 >
-                  Anexar desenho
+                  Selecionar arquivos
                 </Button>
                 {busy && <Spinner size="tiny" />}
                 <input
@@ -164,7 +167,7 @@ export const SubItemDrawings: React.FC<ISubItemDrawingsProps> = ({
             {drawings.length === 0 ? (
               <EmptyState
                 title="Sem desenhos"
-                description="Anexe o desenho BR ou OII deste sub-item."
+                description="Arraste ou selecione os desenhos deste sub-item."
               />
             ) : (
               <ul className={styles.list}>

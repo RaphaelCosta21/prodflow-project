@@ -88,6 +88,14 @@ export const drawingSchema = z.object({
   revision: z.string(),
 });
 
+export const engAnalysisSchema = z.object({
+  requestedBy: z.string(),
+  requestedAt: z.string(),
+  decision: makeSiteSchema.optional(),
+  decidedBy: z.string().optional(),
+  decidedAt: z.string().optional(),
+});
+
 export const checklistStepSchema = z.object({
   key: z.string(),
   label: z.string(),
@@ -113,6 +121,14 @@ export const delineationSchema = z.object({
   horasMontagem: z.number().default(0),
   inspecaoDimensional: z.boolean().default(false),
   horasInspecao: z.number().default(0),
+  services: z
+    .array(
+      z.object({
+        serviceKey: z.string(),
+        qtd: z.number(),
+      }),
+    )
+    .optional(),
   materials: z
     .array(
       z.object({
@@ -120,6 +136,9 @@ export const delineationSchema = z.object({
         categoria: z.string(),
         descricao: z.string(),
         kg: z.number(),
+        largura: z.number().optional(),
+        comprimento: z.number().optional(),
+        altura: z.number().optional(),
       }),
     )
     .default([]),
@@ -175,6 +194,7 @@ export const subItemSchema: z.ZodTypeAny = z.lazy(() =>
     strategy: strategySchema.optional(),
     buyType: buyTypeSchema.optional(),
     makeSite: makeSiteSchema.optional(),
+    engAnalysis: engAnalysisSchema.optional(),
     attendance: subItemAttendanceSchema,
     complexity: complexitySchema,
     status: subItemStatusSchema,
@@ -309,6 +329,46 @@ export const historyEventSchema = z.object({
   message: z.string(),
 });
 
+export const budgetStageKeySchema = z.enum(["delineation", "quotations"]);
+
+export const budgetStageStateSchema = z.object({
+  concluido: z.boolean(),
+  concluidoPor: z.string().optional(),
+  concluidoEm: z.string().optional(),
+  reabertoPor: z.string().optional(),
+  reabertoEm: z.string().optional(),
+  revisionCount: z.number().optional(),
+});
+
+export const budgetReportRevisionSchema = z.object({
+  motivo: z.string(),
+  solicitadoPor: z.string(),
+  solicitadoEm: z.string(),
+  stage: budgetStageKeySchema,
+  atendidoPor: z.string().optional(),
+  atendidoEm: z.string().optional(),
+});
+
+export const budgetReportReviewSchema = z.object({
+  key: z.string(),
+  kind: z.enum(["fabrication", "parts"]),
+  subItemId: z.string().optional(),
+  stage: budgetStageKeySchema,
+  status: z.enum(["pending", "approved", "revision"]),
+  aprovadoPor: z.string().optional(),
+  aprovadoEm: z.string().optional(),
+  revisaoAtual: budgetReportRevisionSchema.optional(),
+  revisaoHistory: z.array(budgetReportRevisionSchema).optional(),
+});
+
+export const budgetRevisionStatsSchema = z.object({
+  houve: z.boolean(),
+  total: z.number(),
+  porEtapa: z.object({ delineation: z.number(), quotations: z.number() }),
+  primeiraEm: z.string().optional(),
+  ultimaEm: z.string().optional(),
+});
+
 export const fabricationRequestSchema = z.object({
   fid: z.string(),
   osNumber: z.string(),
@@ -316,6 +376,7 @@ export const fabricationRequestSchema = z.object({
   lote: z.string().optional(),
   drawing: drawingSchema,
   partNumberOii: z.string().optional(),
+  tituloProjeto: z.string().optional().default(""),
   descricao: z.string(),
   comentarios: z.string().optional(),
   tipoOrcamento: z.string(),
@@ -334,7 +395,6 @@ export const fabricationRequestSchema = z.object({
     dataEnvioPetrobras: z.string().optional(),
     dataAprovacaoPetrobras: z.string().optional(),
     prazoDiasUteis: z.number().optional(),
-    prazoDiasCorridos: z.number().optional(),
   }),
   slaOrcamento: z
     .object({
@@ -367,6 +427,16 @@ export const fabricationRequestSchema = z.object({
       }),
     )
     .optional(),
+  fabAnalysis: z
+    .object({
+      concluidoPor: z.string(),
+      concluidoEm: z.string(),
+      semMakeInterno: z.boolean(),
+    })
+    .optional(),
+  budgetStages: z.record(budgetStageStateSchema).optional(),
+  budgetReviews: z.array(budgetReportReviewSchema).optional(),
+  revisaoOrcamento: budgetRevisionStatsSchema.optional(),
   financials: financialsSchema,
   subItems: z.array(subItemSchema),
   approval: z
@@ -415,9 +485,10 @@ export function safeParseFabricationRequest(
 export const newRequestInputSchema = z.object({
   osNumber: z
     .string()
-    .regex(/^6000\d+$/, "Informe os números da OS após o prefixo 6000."),
-  drawingCode: z.string().min(1, "Informe o código do desenho (CRD)."),
+    .regex(/^\d+$/, "Informe o número da OS (apenas dígitos)."),
+  drawingCode: z.string().min(1, "Informe a referência do desenho."),
   partNumberOii: z.string().optional(),
+  tituloProjeto: z.string().min(1, "Informe o título do projeto."),
   descricao: z.string().min(1, "Informe a descrição resumida."),
   comentarios: z.string().optional(),
   tipoOrcamento: z.string().min(1, "Informe o tipo de orçamento."),
@@ -425,11 +496,6 @@ export const newRequestInputSchema = z.object({
   complexidadeCaldeiraria: complexitySchema,
   atendimento: attendanceSchema,
   solicitacaoOrcamento: z.string().optional(),
-  prazoDiasCorridos: z
-    .number({ invalid_type_error: "Informe um número de dias válido." })
-    .int("Use um número inteiro de dias.")
-    .min(0, "O prazo não pode ser negativo.")
-    .optional(),
   createdBy: z.string(),
 });
 

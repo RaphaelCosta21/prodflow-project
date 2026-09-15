@@ -1,0 +1,78 @@
+.bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--chip-fg);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+}
+
+.approved {
+  --chip-fg: var(--success);
+  --chip-bg: var(--success-bg);
+}
+
+.revision {
+  --chip-fg: var(--warning);
+  --chip-bg: var(--warning-bg);
+}
+
+.pending {
+  --chip-fg: var(--text-secondary);
+  --chip-bg: var(--card-bg-elevated);
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.revisionNote {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--warning);
+  background: var(--warning-bg);
+}
+
+.revisionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.motivo {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.dialogHint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

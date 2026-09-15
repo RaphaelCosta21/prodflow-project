@@ -1,12 +1,13 @@
 import * as React from "react";
 import {
+  CheckmarkCircle16Filled,
   ErrorCircle16Filled,
   Info16Regular,
   Warning16Filled,
 } from "@fluentui/react-icons";
 import styles from "./NoticeBar.module.scss";
 
-export type NoticeTone = "info" | "warning" | "error";
+export type NoticeTone = "info" | "success" | "warning" | "error";
 
 export interface INoticeBarProps {
   tone?: NoticeTone;
@@ -17,12 +18,14 @@ export interface INoticeBarProps {
 
 const TONE_CLASS: Record<NoticeTone, string> = {
   info: styles.info,
+  success: styles.success,
   warning: styles.warning,
   error: styles.error,
 };
 
 const TONE_ICON: Record<NoticeTone, React.ReactElement> = {
   info: <Info16Regular />,
+  success: <CheckmarkCircle16Filled />,
   warning: <Warning16Filled />,
   error: <ErrorCircle16Filled />,
 };

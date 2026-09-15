@@ -31,22 +31,40 @@ export interface IDelineationRevision {
   note?: string;
 }
 
+export interface IEngAnalysis {
+  requestedBy: string;
+  requestedAt: string;
+  decision?: MakeSite;
+  decidedBy?: string;
+  decidedAt?: string;
+}
+
 // One raw-material line of a delineation; materialKey joins CONTRACT_MATERIALS.
 export interface IDelineationMaterial {
   materialKey: string;
   categoria: string;
   descricao: string;
   kg: number;
+  largura?: number; // mm
+  comprimento?: number; // mm
+  altura?: number; // mm
+}
+
+// One checked additional service of a delineation; serviceKey joins CONTRACT_SERVICES (Tabela 1).
+export interface IDelineationService {
+  serviceKey: string;
+  qtd: number;
 }
 
 // Make/In-House fabrication document (Eng. Industrial) with revision control + PDF/Word export.
 export interface IDelineation {
-  hh: number; // derived: usinagem + acabamento + montagem + inspeção
+  hh: number; // derived: usinagem + acabamento + montagem
   horasUsinagem: number;
   horasAcabamento: number;
   horasMontagem: number;
-  inspecaoDimensional: boolean;
-  horasInspecao: number;
+  inspecaoDimensional: boolean; // legado — migrado para `services` (s58)
+  horasInspecao: number; // legado — migrado para `services` (s58)
+  services?: IDelineationService[];
   materials: IDelineationMaterial[];
   inspections?: string[];
   rawMaterial?: string; // legado (texto livre) — substituído por `materials`
@@ -98,6 +116,7 @@ export interface ISubItem {
   strategy?: Strategy;
   buyType?: BuyType;
   makeSite?: MakeSite;
+  engAnalysis?: IEngAnalysis;
   attendance: SubItemAttendance;
   complexity: Complexity;
   status: SubItemStatus;

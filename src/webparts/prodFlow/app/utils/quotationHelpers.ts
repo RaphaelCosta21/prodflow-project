@@ -6,8 +6,8 @@ import {
   ISubItem,
 } from "../models";
 
-/** Quotations recommended per Buy sub-item — a soft target, never a blocker. */
-export const RECOMMENDED_QUOTATIONS = 3;
+/** Quotations every Buy sub-item must have registered before it can be concluded. */
+export const REQUIRED_QUOTATIONS = 3;
 
 export function packagesForSubItem(
   request: IFabricationRequest,
@@ -16,6 +16,28 @@ export function packagesForSubItem(
   return (request.quotationPackages ?? []).filter(
     (p) => p.coveredSubItemIds.indexOf(subItemId) >= 0,
   );
+}
+
+/** Packages covering the sub-item, counting an in-progress (not yet saved) package once. */
+export function quotationCountFor(
+  request: IFabricationRequest,
+  subItemId: string,
+  pending?: IQuotationPackage,
+): number {
+  const saved = packagesForSubItem(request, subItemId).filter(
+    (p) => p.id !== pending?.id,
+  ).length;
+  const inPending =
+    !!pending && pending.coveredSubItemIds.indexOf(subItemId) >= 0;
+  return saved + (inPending ? 1 : 0);
+}
+
+export function hasRequiredQuotations(
+  request: IFabricationRequest,
+  subItemId: string,
+  pending?: IQuotationPackage,
+): boolean {
+  return quotationCountFor(request, subItemId, pending) >= REQUIRED_QUOTATIONS;
 }
 
 export function lineFor(

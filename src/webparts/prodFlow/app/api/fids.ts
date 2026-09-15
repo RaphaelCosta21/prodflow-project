@@ -18,6 +18,9 @@ import {
   Strategy,
   BuyType,
   MakeSite,
+  BudgetStageKey,
+  IBudgetReportReview,
+  IBudgetStageState,
 } from "../models";
 import { TeamKey } from "../config/teams";
 import { RequestService } from "../services/RequestService";
@@ -37,6 +40,13 @@ import {
 } from "../utils/historyHelpers";
 import { delineationToBudget } from "../utils/delineationToBudget";
 import { derivePartsBudget } from "../utils/partsBudgetBuilder";
+import {
+  BUDGET_STAGE_LABEL,
+  IBudgetReportRef,
+  listBudgetReports,
+  openRevisions,
+  stageState,
+} from "../utils/budgetApproval";
 import { withDerivedHh } from "../utils/requestFactory";
 import { recomputeFinancials } from "../utils/financialsRollup";
 import {
@@ -47,6 +57,7 @@ import {
 } from "../utils/classification";
 import { computeBudgetSla } from "../utils/kpis";
 import { formatDate } from "../utils/formatters";
+import { hasRequiredQuotations } from "../utils/quotationHelpers";
 import { queryKeys } from "./queryKeys";
 
 /** Keeps free-text excerpts short in the activity log. */
@@ -194,6 +205,9 @@ export function useUpdateSubItem(
         if (!item) return;
         const { status, ...fields } = vars.changes;
         Object.assign(item, fields);
+        if (Object.prototype.hasOwnProperty.call(vars.changes, "strategy")) {
+          item.engAnalysis = undefined;
+        }
         if (vars.log) {
           draft.history.push({
             ts: new Date().toISOString(),
@@ -257,6 +271,7 @@ export function useReplicateStrategy(
           item.strategy = vars.changes.strategy;
           item.buyType = vars.changes.buyType;
           item.makeSite = vars.changes.makeSite;
+          item.engAnalysis = undefined;
           recordSubItemStatusChange(
             draft,
             item,
@@ -424,6 +439,222 @@ interface IStartSubItemsVars {
   by: string;
 }
 
+interface IRequestFabAnalysisVars {
+  subItemIds: string[];
+  by: string;
+}
+
+interface ISetMakeDecisionVars {
+  subItemIds: string[];
+  makeSite: MakeSite;
+  by: string;
+  reset?: boolean;
+}
+
+interface IConcludeFabAnalysisVars {
+  by: string;
+  semMakeInterno: boolean;
+}
+
+function canRequestAnalysis(item: ISubItem): boolean {
+  return (
+    !item.strategy &&
+    !item.startedAt &&
+    !item.engAnalysis?.requestedAt &&
+    !hasWorkToReset(item)
+  );
+}
+
+function hasWorkToReset(item: ISubItem): boolean {
+  return (
+    !!item.startedAt ||
+    !!item.delineation ||
+    !!item.quotation ||
+    !!item.selectedQuotationId ||
+    item.status !== "NotStarted"
+  );
+}
+
+function resetSubItemExecution(item: ISubItem): void {
+  item.delineation = undefined;
+  item.quotation = undefined;
+  item.selectedQuotationId = undefined;
+  item.fabricationBudget = undefined;
+  item.startedAt = undefined;
+  item.startedBy = undefined;
+  item.ownerTeam = undefined;
+  item.resumeStatus = undefined;
+}
+
+export function useRequestFabAnalysis(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IRequestFabAnalysisVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IRequestFabAnalysisVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const when = new Date().toISOString();
+        const ids = new Set(vars.subItemIds);
+        const requested: string[] = [];
+        for (const item of draft.subItems) {
+          if (!ids.has(item.id) || !canRequestAnalysis(item)) continue;
+          item.engAnalysis = {
+            requestedBy: vars.by,
+            requestedAt: when,
+          };
+          requested.push(item.pn);
+          draft.history.push({
+            ts: when,
+            by: vars.by,
+            type: "subitem:analysis-request",
+            message: `Análise de fabricação solicitada — ${item.pn}`,
+          });
+        }
+        if (requested.length === 0) {
+          throw new Error("Nenhuma linha elegível para solicitar análise.");
+        }
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+export function useSetMakeDecision(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, ISetMakeDecisionVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: ISetMakeDecisionVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const when = new Date().toISOString();
+        const ids = new Set(vars.subItemIds);
+        let changed = 0;
+        for (const item of draft.subItems) {
+          if (!ids.has(item.id)) continue;
+          const wasRequested = !!item.engAnalysis?.requestedAt;
+          const workStarted = hasWorkToReset(item);
+          if (!wasRequested && !vars.reset) continue;
+          if (workStarted && !vars.reset) {
+            throw new Error(
+              `O item ${item.pn} já possui trabalho iniciado. Use reabertura com reset.`,
+            );
+          }
+          if (vars.reset) resetSubItemExecution(item);
+
+          item.strategy = "Make";
+          item.buyType = undefined;
+          item.makeSite = vars.makeSite;
+          item.engAnalysis = {
+            requestedBy: item.engAnalysis?.requestedBy ?? vars.by,
+            requestedAt: item.engAnalysis?.requestedAt ?? when,
+            decision: vars.makeSite,
+            decidedBy: vars.by,
+            decidedAt: when,
+          };
+
+          if (vars.makeSite === "InHouse") {
+            item.startedAt = when;
+            item.startedBy = vars.by;
+            recordSubItemStatusChange(
+              draft,
+              item,
+              "FabDelineation",
+              vars.by,
+              "industrialEngineering",
+              "Análise Eng. Industrial: Make · In-House",
+              when,
+            );
+          } else {
+            item.ownerTeam = undefined;
+            item.startedAt = undefined;
+            item.startedBy = undefined;
+            if (item.status !== "NotStarted") {
+              recordSubItemStatusChange(
+                draft,
+                item,
+                "NotStarted",
+                vars.by,
+                "planning",
+                "Análise Eng. Industrial: Make · SUBCON",
+                when,
+              );
+            }
+          }
+
+          changed += 1;
+          draft.history.push({
+            ts: when,
+            by: vars.by,
+            type: "subitem:analysis",
+            message: `${item.pn}: Make · ${vars.makeSite === "InHouse" ? "In-House" : "SUBCON"}`,
+          });
+        }
+
+        if (changed === 0) {
+          throw new Error(
+            "Nenhuma linha foi atualizada na análise de fabricação.",
+          );
+        }
+
+        recomputeFinancials(draft);
+        syncAttendanceFromStrategies(draft, vars.by);
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+export function useConcludeFabAnalysis(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IConcludeFabAnalysisVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IConcludeFabAnalysisVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const pending = draft.subItems.some(
+          (s) => !!s.engAnalysis?.requestedAt && !s.engAnalysis?.decidedAt,
+        );
+        if (pending) {
+          throw new Error(
+            "Ainda existem linhas pendentes de decisão da Engenharia Industrial.",
+          );
+        }
+        const when = new Date().toISOString();
+        draft.fabAnalysis = {
+          concluidoPor: vars.by,
+          concluidoEm: when,
+          semMakeInterno: vars.semMakeInterno,
+        };
+        draft.history.push({
+          ts: when,
+          by: vars.by,
+          type: "analysis:concluded",
+          message: vars.semMakeInterno
+            ? "Análise de fabricação concluída sem itens Make · In-House."
+            : "Análise de fabricação concluída com itens Make · In-House.",
+        });
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+export function useReopenFabAnalysis(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, { by: string }> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { by: string }) =>
+      RequestService.updateSection(fid, (draft) => {
+        draft.fabAnalysis = undefined;
+        draft.history.push({
+          ts: new Date().toISOString(),
+          by: vars.by,
+          type: "analysis:reopen",
+          message: "Análise de fabricação reaberta para revisão.",
+        });
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
 // Planning routes each defined sub-item to Eng. Industrial (delineation) or SCM (quotation).
 export function useStartSubItems(
   fid: string,
@@ -546,6 +777,8 @@ export function useUpsertQuotationPackage(
           for (const id of saved.coveredSubItemIds) {
             const item = draft.subItems.filter((s) => s.id === id)[0];
             if (!item) continue;
+            // Regra: o item só é custeado com o mínimo de cotações registradas.
+            if (!hasRequiredQuotations(draft, id)) continue;
             if (!item.selectedQuotationId) item.selectedQuotationId = saved.id;
             recordSubItemStatusChange(
               draft,
@@ -725,6 +958,228 @@ export function useUpdatePartsBudget(
           by: vars.by,
           type: "budget:parts",
           message: "Orçamento de partes e peças salvo",
+        });
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+function stageRecord(
+  draft: IFabricationRequest,
+  stage: BudgetStageKey,
+): IBudgetStageState {
+  draft.budgetStages = draft.budgetStages ?? {};
+  const current = draft.budgetStages[stage] ?? stageState(draft, stage);
+  draft.budgetStages[stage] = current;
+  return current;
+}
+
+function ensureReview(
+  draft: IFabricationRequest,
+  ref: IBudgetReportRef,
+): IBudgetReportReview {
+  draft.budgetReviews = draft.budgetReviews ?? [];
+  let review = draft.budgetReviews.filter((r) => r.key === ref.key)[0];
+  if (!review) {
+    review = {
+      key: ref.key,
+      kind: ref.kind,
+      subItemId: ref.subItem?.id,
+      stage: ref.stage,
+      status: "pending",
+    };
+    draft.budgetReviews.push(review);
+  }
+  review.stage = ref.stage;
+  return review;
+}
+
+interface IBudgetStageVars {
+  stage: BudgetStageKey;
+  by: string;
+}
+
+/** "Concluído" explícito: trava a aba e libera a aprovação do time de Projects. */
+export function useConcludeBudgetStage(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IBudgetStageVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IBudgetStageVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const when = new Date().toISOString();
+        const state = stageRecord(draft, vars.stage);
+        state.concluido = true;
+        state.concluidoPor = vars.by;
+        state.concluidoEm = when;
+        state.reabertoPor = undefined;
+        state.reabertoEm = undefined;
+        const atendidas = openRevisions(draft, vars.stage);
+        for (const { ref } of atendidas) {
+          const review = ensureReview(draft, ref);
+          if (review.revisaoAtual) {
+            review.revisaoHistory = (review.revisaoHistory ?? []).concat({
+              ...review.revisaoAtual,
+              atendidoPor: vars.by,
+              atendidoEm: when,
+            });
+            review.revisaoAtual = undefined;
+          }
+          review.status = "pending";
+        }
+        draft.history.push({
+          ts: when,
+          by: vars.by,
+          type: "budget:stage-concluded",
+          message: atendidas.length
+            ? `Etapa ${BUDGET_STAGE_LABEL[vars.stage]} concluída — ${atendidas.length} revisão(ões) atendida(s).`
+            : `Etapa ${BUDGET_STAGE_LABEL[vars.stage]} concluída.`,
+        });
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+export function useReopenBudgetStage(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IBudgetStageVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IBudgetStageVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const aprovado = listBudgetReports(draft).filter(
+          (ref) =>
+            ref.stage === vars.stage &&
+            ensureReview(draft, ref).status === "approved",
+        );
+        if (aprovado.length > 0) {
+          throw new Error(
+            "Etapa já tem relatório aprovado — peça uma revisão ao time de Projects.",
+          );
+        }
+        const when = new Date().toISOString();
+        const state = stageRecord(draft, vars.stage);
+        state.concluido = false;
+        state.reabertoPor = vars.by;
+        state.reabertoEm = when;
+        draft.history.push({
+          ts: when,
+          by: vars.by,
+          type: "budget:stage-reopened",
+          message: `Etapa ${BUDGET_STAGE_LABEL[vars.stage]} reaberta para ajustes.`,
+        });
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+interface IApproveReportsVars {
+  keys: string[];
+  by: string;
+}
+
+export function useApproveBudgetReports(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IApproveReportsVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IApproveReportsVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const when = new Date().toISOString();
+        const refs = listBudgetReports(draft).filter(
+          (ref) => vars.keys.indexOf(ref.key) >= 0,
+        );
+        const aprovados: string[] = [];
+        for (const ref of refs) {
+          if (!stageState(draft, ref.stage).concluido) {
+            throw new Error(
+              `Etapa ${BUDGET_STAGE_LABEL[ref.stage]} ainda não foi concluída.`,
+            );
+          }
+          const review = ensureReview(draft, ref);
+          if (review.status === "approved") continue;
+          review.status = "approved";
+          review.aprovadoPor = vars.by;
+          review.aprovadoEm = when;
+          aprovados.push(ref.label);
+        }
+        if (aprovados.length === 0) return;
+        draft.history.push({
+          ts: when,
+          by: vars.by,
+          type: "budget:report-approved",
+          message:
+            aprovados.length === 1
+              ? `Relatório aprovado — ${aprovados[0]}`
+              : `${aprovados.length} relatórios aprovados — ${aprovados.join(", ")}`,
+        });
+      }),
+    onSuccess: invalidateFid(qc, fid),
+  });
+}
+
+interface IRequestRevisionVars {
+  key: string;
+  motivo: string;
+  by: string;
+}
+
+/** Devolve o relatório para a aba de origem e marca o FID como revisado na orçamentação. */
+export function useRequestBudgetReportRevision(
+  fid: string,
+): UseMutationResult<IFabricationRequest, unknown, IRequestRevisionVars> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: IRequestRevisionVars) =>
+      RequestService.updateSection(fid, (draft) => {
+        const motivo = vars.motivo.trim();
+        if (!motivo) throw new Error("Informe o motivo da revisão.");
+        const ref = listBudgetReports(draft).filter(
+          (r) => r.key === vars.key,
+        )[0];
+        if (!ref) throw new Error("Relatório não encontrado.");
+
+        const when = new Date().toISOString();
+        const review = ensureReview(draft, ref);
+        review.status = "revision";
+        review.aprovadoPor = undefined;
+        review.aprovadoEm = undefined;
+        review.revisaoAtual = {
+          motivo,
+          solicitadoPor: vars.by,
+          solicitadoEm: when,
+          stage: ref.stage,
+        };
+
+        const state = stageRecord(draft, ref.stage);
+        state.concluido = false;
+        state.revisionCount = (state.revisionCount ?? 0) + 1;
+
+        const stats = draft.revisaoOrcamento ?? {
+          houve: false,
+          total: 0,
+          porEtapa: { delineation: 0, quotations: 0 },
+        };
+        draft.revisaoOrcamento = {
+          houve: true,
+          total: stats.total + 1,
+          porEtapa: {
+            delineation:
+              (stats.porEtapa?.delineation ?? 0) +
+              (ref.stage === "delineation" ? 1 : 0),
+            quotations:
+              (stats.porEtapa?.quotations ?? 0) +
+              (ref.stage === "quotations" ? 1 : 0),
+          },
+          primeiraEm: stats.primeiraEm ?? when,
+          ultimaEm: when,
+        };
+
+        draft.history.push({
+          ts: when,
+          by: vars.by,
+          type: "budget:report-revision",
+          message: `Revisão solicitada — ${ref.label} → ${BUDGET_STAGE_LABEL[ref.stage]}: “${truncate(motivo)}”`,
         });
       }),
     onSuccess: invalidateFid(qc, fid),

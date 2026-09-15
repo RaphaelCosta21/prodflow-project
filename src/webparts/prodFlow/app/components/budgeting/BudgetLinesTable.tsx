@@ -11,11 +11,17 @@ export interface IBudgetLinesTableProps {
   lines: IBudgetLine[];
   onChange: (lines: IBudgetLine[]) => void;
   disabled?: boolean;
+  /** Relatório apenas para conferência: a QTD vira texto em vez de campo. */
+  readOnly?: boolean;
 }
 
 const pesoFmt = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 6,
   maximumFractionDigits: 6,
+});
+
+const qtdFmt = new Intl.NumberFormat("pt-BR", {
+  maximumFractionDigits: 2,
 });
 
 const HEADERS: Record<BudgetTableMode, string[]> = {
@@ -29,6 +35,7 @@ export const BudgetLinesTable: React.FC<IBudgetLinesTableProps> = ({
   lines,
   onChange,
   disabled,
+  readOnly,
 }) => {
   const setQtd = (index: number, raw: string): void => {
     const value = raw === "" ? 0 : Math.max(0, Number(raw.replace(",", ".")));
@@ -85,15 +92,21 @@ export const BudgetLinesTable: React.FC<IBudgetLinesTableProps> = ({
                     : line.criterio}
               </span>
               <span className={styles.input}>
-                <Input
-                  size="small"
-                  type="number"
-                  min={0}
-                  appearance="filled-darker"
-                  disabled={disabled}
-                  value={line.qtd ? String(line.qtd) : ""}
-                  onChange={(_, d) => setQtd(i, d.value)}
-                />
+                {readOnly ? (
+                  <span className={styles.qtdText}>
+                    {line.qtd ? qtdFmt.format(line.qtd) : "—"}
+                  </span>
+                ) : (
+                  <Input
+                    size="small"
+                    type="number"
+                    min={0}
+                    appearance="filled-darker"
+                    disabled={disabled}
+                    value={line.qtd ? String(line.qtd) : ""}
+                    onChange={(_, d) => setQtd(i, d.value)}
+                  />
+                )}
               </span>
               <span className={styles.peso}>
                 {pesoFmt.format(line.peso || 0)}

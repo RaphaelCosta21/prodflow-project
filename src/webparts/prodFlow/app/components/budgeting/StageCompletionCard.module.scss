@@ -1,0 +1,38 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.motivo {
+  display: block;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.lockLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pendencias {
+  margin: 0;
+  padding-left: 18px;
+
+  li {
+    margin: 2px 0;
+  }
+}
+
+.counter {
+  font-size: 11px;
+  color: var(--text-secondary);
+}

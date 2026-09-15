@@ -138,11 +138,24 @@
   }
 }
 
+.itemRevision {
+  .icon {
+    color: var(--warning);
+  }
+}
+
 .doneIcon {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   color: var(--success);
+}
+
+.revisionIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--warning);
 }
 
 // Marca discreta para o menu recolhido, onde não há espaço para o ícone completo.
@@ -154,6 +167,10 @@
   height: 6px;
   border-radius: 50%;
   background: var(--success);
+}
+
+.revisionDot {
+  background: var(--warning);
 }
 
 .icon {

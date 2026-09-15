@@ -11,6 +11,7 @@ import EmptyState from "../components/common/EmptyState";
 import SkeletonLoader from "../components/common/SkeletonLoader";
 import { useStatusColors } from "../hooks/useStatusColors";
 import { fidDetailPath } from "../config/routes";
+import { formatDate } from "../utils/formatters";
 import styles from "./RequestsPage.module.scss";
 
 const DASH = "—";
@@ -68,6 +69,12 @@ export const RequestsPage: React.FC = () => {
       filterValue: (r) => r.partNumberOii,
     },
     {
+      key: "title",
+      header: "Título",
+      render: (r) => text(r.tituloProjeto),
+      filterValue: (r) => r.tituloProjeto,
+    },
+    {
       key: "budgetType",
       header: "Tipo de Orçamento",
       render: (r) => text(r.tipoOrcamento),
@@ -99,6 +106,12 @@ export const RequestsPage: React.FC = () => {
       header: "Atendimento",
       render: (r) => text(r.atendimento),
       filterValue: (r) => r.atendimento,
+    },
+    {
+      key: "deadline",
+      header: "Prazo de Atendimento",
+      render: (r) => formatDate(r.dates.prazoEnvioPetrobras),
+      filterValue: (r) => formatDate(r.dates.prazoEnvioPetrobras),
     },
     {
       key: "year",

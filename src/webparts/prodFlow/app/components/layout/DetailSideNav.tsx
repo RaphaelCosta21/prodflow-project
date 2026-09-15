@@ -1,12 +1,15 @@
 import * as React from "react";
 import { Tooltip } from "@fluentui/react-components";
 import {
+  ArrowSync16Filled,
   CheckmarkCircle16Filled,
   ChevronLeft16Regular,
   ChevronRight16Regular,
 } from "@fluentui/react-icons";
 import { IFidNavGroup, FidTabKey } from "../../config/fidDetailNav";
 import styles from "./DetailSideNav.module.scss";
+
+export type NavItemState = "done" | "revision";
 
 export interface IDetailSideNavProps {
   groups: IFidNavGroup[];
@@ -16,8 +19,8 @@ export interface IDetailSideNavProps {
   onToggleCollapsed: () => void;
   /** Small counter/indicator rendered at the right of an item (e.g. pending sub-items). */
   badges?: Partial<Record<FidTabKey, string>>;
-  /** Etapa sem pendências — ganha o check verde no lugar do contador. */
-  done?: Partial<Record<FidTabKey, boolean>>;
+  /** Check verde (concluído) ou ícone laranja (revisão solicitada pelo time de Projects). */
+  state?: Partial<Record<FidTabKey, NavItemState>>;
 }
 
 export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
@@ -27,7 +30,7 @@ export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
   onSelect,
   onToggleCollapsed,
   badges,
-  done,
+  state,
 }) => (
   <nav
     className={`${styles.sideNav} ${collapsed ? styles.collapsed : ""}`}
@@ -49,7 +52,15 @@ export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
           const Icon = item.icon;
           const isActive = item.key === active;
           const badge = badges?.[item.key];
-          const isDone = !badge && !!done?.[item.key];
+          const itemState = state?.[item.key];
+          // Revisão é mais urgente que o contador de pendências; concluído cede a vez.
+          const mark =
+            itemState === "revision"
+              ? "revision"
+              : !badge && itemState === "done"
+                ? "done"
+                : undefined;
+          const markLabel = mark === "revision" ? "Em revisão" : "Concluído";
           const button = (
             <button
               key={item.key}
@@ -57,7 +68,8 @@ export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
               className={[
                 styles.item,
                 isActive ? styles.itemActive : "",
-                isDone ? styles.itemDone : "",
+                mark === "done" ? styles.itemDone : "",
+                mark === "revision" ? styles.itemRevision : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -67,18 +79,30 @@ export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
               <span className={styles.icon}>
                 <Icon />
               </span>
-              {collapsed
-                ? isDone && (
-                    <span className={styles.doneDot} aria-hidden="true" />
-                  )
-                : null}
+              {collapsed && mark ? (
+                <span
+                  className={`${styles.doneDot} ${
+                    mark === "revision" ? styles.revisionDot : ""
+                  }`}
+                  aria-hidden="true"
+                />
+              ) : null}
               {!collapsed && (
                 <>
                   <span className={styles.label}>{item.label}</span>
                   {badge && <span className={styles.badge}>{badge}</span>}
-                  {isDone && (
-                    <span className={styles.doneIcon} aria-label="Concluído">
-                      <CheckmarkCircle16Filled />
+                  {mark && (
+                    <span
+                      className={
+                        mark === "revision" ? styles.revisionIcon : styles.doneIcon
+                      }
+                      aria-label={markLabel}
+                    >
+                      {mark === "revision" ? (
+                        <ArrowSync16Filled />
+                      ) : (
+                        <CheckmarkCircle16Filled />
+                      )}
                     </span>
                   )}
                 </>
@@ -89,11 +113,13 @@ export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
             <Tooltip
               key={item.key}
               content={
-                badge
-                  ? `${item.label} · ${badge}`
-                  : isDone
-                    ? `${item.label} · concluído`
-                    : item.label
+                mark === "revision"
+                  ? `${item.label} · em revisão`
+                  : badge
+                    ? `${item.label} · ${badge}`
+                    : mark === "done"
+                      ? `${item.label} · concluído`
+                      : item.label
               }
               relationship="label"
               positioning="after"

@@ -43,17 +43,22 @@ import { useAccessLevel } from "../../hooks/useAccessLevel";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useUIStore } from "../../stores/useUIStore";
 import {
-  RECOMMENDED_QUOTATIONS,
+  REQUIRED_QUOTATIONS,
   cheapestPackageId,
   leadTimeOf,
   lineFor,
   packageTotal,
   packagesForSubItem,
+  quotationCountFor,
 } from "../../utils/quotationHelpers";
 import { formatCurrencyBRL, formatDate } from "../../utils/formatters";
+import { stageIsLocked } from "../../utils/budgetApproval";
 import GlassCard from "../common/GlassCard";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
+import FidDrawingCard from "../common/FidDrawingCard";
+import StageCompletionCard from "./StageCompletionCard";
+import SubItemDrawings from "./SubItemDrawings";
 import styles from "./QuotationsTab.module.scss";
 
 export interface IQuotationsTabProps {
@@ -97,15 +102,17 @@ const PackageForm: React.FC<{
   const [busy, setBusy] = React.useState(false);
 
   const items = quotableItems(data);
-  // Itens que nenhum outro pacote cobre — destacados para não passarem batido.
-  const withoutQuote = React.useMemo(() => {
-    const covered = new Set<string>();
-    for (const p of data.quotationPackages ?? []) {
-      if (p.id === initial.id) continue;
-      for (const id of p.coveredSubItemIds) covered.add(id);
-    }
-    return items.filter((i) => !covered.has(i.id)).map((i) => i.id);
-  }, [data.quotationPackages, initial.id, items]);
+  // Contagem já considerando este pacote (ainda não salvo) para liberar a conclusão na hora.
+  const countOf = React.useCallback(
+    (subItemId: string): number => quotationCountFor(data, subItemId, pkg),
+    [data, pkg],
+  );
+  // Itens que ainda não atingem o mínimo obrigatório — destacados para não passarem batido.
+  const belowMinimum = React.useMemo(
+    () =>
+      items.filter((i) => countOf(i.id) < REQUIRED_QUOTATIONS).map((i) => i.id),
+    [countOf, items],
+  );
 
   const edit = (patch: Partial<IQuotationPackage>): void =>
     setPkg((p) => ({ ...p, ...patch }));
@@ -200,6 +207,14 @@ const PackageForm: React.FC<{
     (id) => (lineFor(pkg, id)?.valorUnit ?? 0) <= 0,
   );
   const canSave = !!pkg.supplier.trim() && missingPrice.length === 0;
+  // Só dá para custear um item quando ele tem as cotações obrigatórias registradas.
+  const coveredBelowMinimum = pkg.coveredSubItemIds.filter(
+    (id) => countOf(id) < REQUIRED_QUOTATIONS,
+  );
+  const canConclude =
+    canSave &&
+    pkg.coveredSubItemIds.length > 0 &&
+    coveredBelowMinimum.length === 0;
 
   return (
     <Dialog open onOpenChange={(_, d) => !d.open && onClose()}>
@@ -286,9 +301,10 @@ const PackageForm: React.FC<{
 
             <div className={styles.itemsHead}>
               <span>Itens cobertos por esta cotação</span>
-              {withoutQuote.length > 0 && (
+              {belowMinimum.length > 0 && (
                 <span className={styles.itemsLegend}>
-                  {withoutQuote.length} sem cotação registrada
+                  {belowMinimum.length} sem as {REQUIRED_QUOTATIONS} cotações
+                  obrigatórias
                 </span>
               )}
               <Button size="small" appearance="subtle" onClick={selectAllBuy}>
@@ -301,24 +317,31 @@ const PackageForm: React.FC<{
                 informe o valor ou desmarque o item.
               </div>
             )}
+            {coveredBelowMinimum.length > 0 && (
+              <div className={styles.itemsWarning}>
+                {coveredBelowMinimum.length} item(ns) marcado(s) ainda sem{" "}
+                {REQUIRED_QUOTATIONS} cotações registradas — só é possível
+                salvar; a conclusão exige o mínimo de {REQUIRED_QUOTATIONS}{" "}
+                cotações por item.
+              </div>
+            )}
 
             <div className={styles.itemsTable}>
               {items.map((item) => {
                 const covered = pkg.coveredSubItemIds.indexOf(item.id) >= 0;
                 const line = lineFor(pkg, item.id);
                 const priceMissing = covered && (line?.valorUnit ?? 0) <= 0;
-                const noQuoteYet = withoutQuote.indexOf(item.id) >= 0;
+                const count = countOf(item.id);
+                const missingQuotes = count < REQUIRED_QUOTATIONS;
                 return (
                   <div
                     key={item.id}
                     className={
-                      noQuoteYet
+                      missingQuotes
                         ? `${styles.itemRow} ${styles.itemRowPending}`
                         : styles.itemRow
                     }
-                    title={
-                      noQuoteYet ? "Ainda sem cotação registrada" : undefined
-                    }
+                    title={`${count}/${REQUIRED_QUOTATIONS} cotações registradas`}
                   >
                     <Checkbox
                       checked={covered}
@@ -329,6 +352,11 @@ const PackageForm: React.FC<{
                       <span className={styles.pn}>{item.pn}</span>
                       <span className={styles.desc}>{item.descricao}</span>
                     </div>
+                    <span
+                      className={missingQuotes ? styles.countWarn : styles.qtd}
+                    >
+                      {count}/{REQUIRED_QUOTATIONS}
+                    </span>
                     <span className={styles.qtd}>
                       {line?.qtd ?? item.qtd} {item.unit ?? "Und."}
                     </span>
@@ -387,10 +415,11 @@ const PackageForm: React.FC<{
             <Button
               appearance="primary"
               icon={<CheckmarkCircle20Regular />}
-              disabled={
-                !canSave ||
-                pkg.coveredSubItemIds.length === 0 ||
-                upsert.isLoading
+              disabled={!canConclude || upsert.isLoading}
+              title={
+                coveredBelowMinimum.length > 0
+                  ? `Cada item precisa de ${REQUIRED_QUOTATIONS} cotações registradas para ser concluído.`
+                  : undefined
               }
               onClick={() => persist(true)}
             >
@@ -410,10 +439,14 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
   const removePackage = useDeleteQuotationPackage(fid);
   const selectQuotation = useSelectQuotation(fid);
   const [editing, setEditing] = React.useState<IQuotationPackage | undefined>();
+  const [drawingsFor, setDrawingsFor] = React.useState<ISubItem | undefined>();
   const [selected, setSelected] = React.useState<{ [id: string]: boolean }>({});
 
   const canEdit =
-    isAdmin || teams.indexOf("scm") >= 0 || teams.indexOf("purchasing") >= 0;
+    (isAdmin ||
+      teams.indexOf("scm") >= 0 ||
+      teams.indexOf("purchasing") >= 0) &&
+    !stageIsLocked(data, "quotations");
   const packages = data.quotationPackages ?? [];
   const items = quotableItems(data);
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
@@ -440,15 +473,22 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
 
   if (items.length === 0) {
     return (
-      <EmptyState
-        title="Nada para cotar"
-        description="O Planejamento precisa definir itens como Buy ou Make · SUBCON e iniciá-los."
-      />
+      <div className={styles.tab}>
+        <StageCompletionCard fid={fid} data={data} stage="quotations" />
+        <FidDrawingCard data={data} compact canEdit={canEdit} />
+        <EmptyState
+          title="Nada para cotar"
+          description="O Planejamento precisa definir itens como Buy ou Make · SUBCON e iniciá-los."
+        />
+      </div>
     );
   }
 
   return (
     <div className={styles.tab}>
+      <StageCompletionCard fid={fid} data={data} stage="quotations" />
+      <FidDrawingCard data={data} compact canEdit={canEdit} />
+
       <GlassCard
         title="Pacotes de cotação"
         subtitle="Um fornecedor pode cotar vários itens de uma vez. Um PDF cobre todos eles."
@@ -541,7 +581,7 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
 
       <GlassCard
         title="Comparativo por item"
-        subtitle={`${RECOMMENDED_QUOTATIONS} cotações são recomendadas, mas não obrigatórias.`}
+        subtitle={`Cada item precisa de ${REQUIRED_QUOTATIONS} cotações registradas para ser concluído.`}
         noBodyPadding
       >
         {canEdit && selectedIds.length > 0 && (
@@ -601,6 +641,7 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
               }
             />
             <span>Item</span>
+            <span>Desenho</span>
             <span>Status</span>
             <span>Cotações</span>
             <span>Prazo</span>
@@ -625,17 +666,30 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
                   <span className={styles.pn}>{item.pn}</span>
                   <span className={styles.desc}>{item.descricao}</span>
                 </div>
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<Attach16Regular />}
+                  onClick={() => setDrawingsFor(item)}
+                >
+                  {item.drawings?.length ? `${item.drawings.length}` : "Anexar"}
+                </Button>
                 <div>
                   <StatusBadge kind="subitem" status={item.status} />
                 </div>
                 <span
                   className={
-                    covering.length >= RECOMMENDED_QUOTATIONS
+                    covering.length >= REQUIRED_QUOTATIONS
                       ? styles.countOk
                       : styles.countWarn
                   }
+                  title={
+                    covering.length >= REQUIRED_QUOTATIONS
+                      ? undefined
+                      : `Faltam ${REQUIRED_QUOTATIONS - covering.length} cotação(ões) obrigatória(s).`
+                  }
                 >
-                  {covering.length}/{RECOMMENDED_QUOTATIONS}
+                  {covering.length}/{REQUIRED_QUOTATIONS}
                 </span>
                 <span className={styles.prazo}>
                   {prazoLabel(
@@ -702,6 +756,13 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
           onClose={() => setEditing(undefined)}
         />
       )}
+
+      <SubItemDrawings
+        fid={fid}
+        subItem={drawingsFor}
+        canEdit={canEdit}
+        onClose={() => setDrawingsFor(undefined)}
+      />
     </div>
   );
 };

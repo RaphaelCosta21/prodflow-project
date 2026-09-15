@@ -147,7 +147,7 @@
 .matrixRow {
   display: grid;
   grid-template-columns:
-    36px minmax(200px, 1.6fr) 150px 90px 110px
+    36px minmax(200px, 1.6fr) 92px 150px 90px 110px
     minmax(240px, 2fr);
   gap: 12px;
   align-items: center;
@@ -256,7 +256,7 @@
 
 .itemRow {
   display: grid;
-  grid-template-columns: 32px minmax(160px, 2fr) 90px 130px 110px 110px;
+  grid-template-columns: 32px minmax(160px, 2fr) 52px 90px 130px 110px 110px;
   gap: 8px;
   align-items: center;
   padding: 8px 12px;

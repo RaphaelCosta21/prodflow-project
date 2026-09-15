@@ -43,6 +43,7 @@ const request = (over: Partial<IFabricationRequest>): IFabricationRequest => ({
   history: [],
   attachments: [],
   ...over,
+  tituloProjeto: over.tituloProjeto ?? "Projeto teste",
 });
 
 const inHouse = subItem({ id: "a", strategy: "Make", makeSite: "InHouse" });

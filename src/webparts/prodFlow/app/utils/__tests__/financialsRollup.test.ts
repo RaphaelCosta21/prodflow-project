@@ -37,6 +37,7 @@ const request = (over: Partial<IFabricationRequest>): IFabricationRequest => ({
   history: [],
   attachments: [],
   ...over,
+  tituloProjeto: over.tituloProjeto ?? "Projeto teste",
 });
 
 describe("recomputeFinancials", () => {

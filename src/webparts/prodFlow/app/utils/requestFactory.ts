@@ -4,6 +4,7 @@ import {
   IBudget,
   IBudgetLine,
   IDelineation,
+  IDelineationService,
   IFabricationRequest,
   IFinancials,
 } from "../models";
@@ -107,21 +108,34 @@ export function createEmptyDelineation(): IDelineation {
     horasMontagem: 0,
     inspecaoDimensional: false,
     horasInspecao: 0,
+    services: [],
     materials: [],
     revision: "A",
     checklist: [],
   };
 }
 
-/** `hh` is the single source of truth for rollups — always the sum of the typed hours. */
+const LEGACY_INSPECTION_SERVICE_KEY = "s58"; // SERVIÇOS DE INSPEÇÃO LP/PM E CERTIFICAÇÕES
+
+/** Reads the checked additional services, migrating delineations saved before `services` existed. */
+export function delineationServices(d: IDelineation): IDelineationService[] {
+  if (d.services) return d.services;
+  if (d.inspecaoDimensional && d.horasInspecao > 0) {
+    return [
+      { serviceKey: LEGACY_INSPECTION_SERVICE_KEY, qtd: d.horasInspecao },
+    ];
+  }
+  return [];
+}
+
+/** `hh` is the single source of truth for rollups — always the sum of the typed fabrication hours. */
 export function withDerivedHh(d: IDelineation): IDelineation {
   return {
     ...d,
     hh:
       (d.horasUsinagem || 0) +
       (d.horasAcabamento || 0) +
-      (d.horasMontagem || 0) +
-      (d.inspecaoDimensional ? d.horasInspecao || 0 : 0),
+      (d.horasMontagem || 0),
   };
 }
 
@@ -138,6 +152,7 @@ export interface INewRequestInput {
   osNumber: string;
   drawingCode: string;
   partNumberOii?: string;
+  tituloProjeto: string;
   descricao: string;
   comentarios?: string;
   tipoOrcamento: string;
@@ -145,7 +160,6 @@ export interface INewRequestInput {
   complexidadeCaldeiraria: Complexity;
   atendimento: Attendance;
   solicitacaoOrcamento?: string;
-  prazoDiasCorridos?: number;
   createdBy: string;
 }
 
@@ -178,6 +192,7 @@ export function buildNewRequest(
     projeto: PROJECT_NAME,
     drawing: { code: input.drawingCode, revision: "" },
     partNumberOii: input.partNumberOii,
+    tituloProjeto: input.tituloProjeto,
     descricao: input.descricao,
     comentarios: input.comentarios,
     tipoOrcamento: input.tipoOrcamento,
@@ -192,7 +207,6 @@ export function buildNewRequest(
       solicitacaoOrcamento: input.solicitacaoOrcamento,
       prazoEnvioPetrobras: prazoEnvio,
       prazoDiasUteis,
-      prazoDiasCorridos: input.prazoDiasCorridos,
     },
     budget: seedBudgetFromContract(),
     financials: createEmptyFinancials(),

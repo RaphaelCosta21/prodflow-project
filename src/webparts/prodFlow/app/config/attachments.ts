@@ -25,7 +25,7 @@ export const ATTACHMENT_CATEGORIES: Record<
   AttachmentCategory,
   IAttachmentCategoryDef
 > = {
-  CRD: { label: "Desenho (CRD)", folder: "CRD" },
+  CRD: { label: "Desenho Top-Level", folder: "CRD" },
   OII: { label: "Part Number OII", folder: "OII" },
   BR: { label: "Desenho BR", folder: "BR" },
   DEL: { label: "Delineamento de Fab.", folder: "Delineamento" },

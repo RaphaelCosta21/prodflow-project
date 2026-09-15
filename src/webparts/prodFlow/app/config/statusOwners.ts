@@ -24,6 +24,8 @@ const MAKE_OWNERS: TeamKey[] = ["planning", "industrialEngineering"];
 
 export type SubItemAction =
   | "start"
+  | "analysisRequest"
+  | "analysis"
   | "delineation"
   | "quotation"
   | "release"
@@ -32,6 +34,8 @@ export type SubItemAction =
 
 export const SUBITEM_ACTION_OWNERS: Record<SubItemAction, TeamKey[]> = {
   start: ["planning"],
+  analysisRequest: ["planning"],
+  analysis: ["industrialEngineering"],
   delineation: ["industrialEngineering"],
   quotation: ["scm", "purchasing"],
   release: ["planning"],

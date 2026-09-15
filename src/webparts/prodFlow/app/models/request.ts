@@ -28,7 +28,6 @@ export interface IRequestDates {
   dataEnvioPetrobras?: string;
   dataAprovacaoPetrobras?: string;
   prazoDiasUteis?: number;
-  prazoDiasCorridos?: number;
 }
 
 export interface IApproval {
@@ -54,6 +53,59 @@ export interface IMedicao {
   date?: string;
 }
 
+export interface IFabAnalysis {
+  concluidoPor: string;
+  concluidoEm: string;
+  semMakeInterno: boolean;
+}
+
+/** Etapas de orçamentação que exigem "Concluir" explícito antes da aprovação de Projetos. */
+export type BudgetStageKey = "delineation" | "quotations";
+
+export interface IBudgetStageState {
+  concluido: boolean;
+  concluidoPor?: string;
+  concluidoEm?: string;
+  reabertoPor?: string;
+  reabertoEm?: string;
+  /** Quantas vezes a etapa voltou para revisão a pedido do time de Projetos. */
+  revisionCount?: number;
+}
+
+export interface IBudgetReportRevision {
+  motivo: string;
+  solicitadoPor: string;
+  solicitadoEm: string;
+  stage: BudgetStageKey;
+  atendidoPor?: string;
+  atendidoEm?: string;
+}
+
+export type BudgetReportKind = "fabrication" | "parts";
+export type BudgetReviewStatus = "pending" | "approved" | "revision";
+
+/** Aprovação do time de Projetos por relatório (`fab:<subItemId>` ou `parts`). */
+export interface IBudgetReportReview {
+  key: string;
+  kind: BudgetReportKind;
+  subItemId?: string;
+  stage: BudgetStageKey;
+  status: BudgetReviewStatus;
+  aprovadoPor?: string;
+  aprovadoEm?: string;
+  revisaoAtual?: IBudgetReportRevision;
+  revisaoHistory?: IBudgetReportRevision[];
+}
+
+/** Indicador para contabilizar FIDs que precisaram de revisão na fase de orçamentação. */
+export interface IBudgetRevisionStats {
+  houve: boolean;
+  total: number;
+  porEtapa: Record<BudgetStageKey, number>;
+  primeiraEm?: string;
+  ultimaEm?: string;
+}
+
 // One item per FID in `prodflow-requests` (full JSON in `jsondata` + ~5 indexed columns).
 export interface IFabricationRequest {
   fid: string; // FID0000001
@@ -62,6 +114,7 @@ export interface IFabricationRequest {
   lote?: string;
   drawing: IDrawing;
   partNumberOii?: string;
+  tituloProjeto: string;
   descricao: string;
   comentarios?: string;
   tipoOrcamento: string;
@@ -92,6 +145,10 @@ export interface IFabricationRequest {
   /** Who last saved each note section and when (same keys as `notes`). */
   notesMeta?: Record<string, INoteMeta>;
   comments?: IComment[];
+  fabAnalysis?: IFabAnalysis;
+  budgetStages?: Partial<Record<BudgetStageKey, IBudgetStageState>>;
+  budgetReviews?: IBudgetReportReview[];
+  revisaoOrcamento?: IBudgetRevisionStats;
   attachments: IAttachmentRef[];
 }
 

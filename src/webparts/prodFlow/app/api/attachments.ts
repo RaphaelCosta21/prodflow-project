@@ -16,6 +16,8 @@ interface IUploadVars {
   fid: string;
   file: File;
   by: string;
+  category?: AttachmentCategory;
+  refCode?: string;
 }
 
 export interface IPendingAttachment {
@@ -50,15 +52,23 @@ export function useUploadAttachment(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (vars: IUploadVars) => {
-      const ref = await AttachmentService.upload(vars.fid, vars.file);
+      const ref = await AttachmentService.upload(vars.fid, vars.file, {
+        category: vars.category,
+        refCode: vars.refCode,
+      });
+      const stampedRef: IAttachmentRef = {
+        ...ref,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: vars.by,
+      };
       return RequestService.updateSection(vars.fid, (draft) => {
-        const exists = draft.attachments.some((a) => a.url === ref.url);
-        if (!exists) draft.attachments.push(ref);
+        const exists = draft.attachments.some((a) => a.url === stampedRef.url);
+        if (!exists) draft.attachments.push(stampedRef);
         draft.history.push({
           ts: new Date().toISOString(),
           by: vars.by,
           type: "attachment-added",
-          message: `Anexo adicionado: ${ref.name}`,
+          message: `Anexo adicionado: ${stampedRef.name}`,
         });
       });
     },

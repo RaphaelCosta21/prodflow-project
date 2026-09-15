@@ -10,8 +10,7 @@ import {
   CONTRACT_SERVICES,
   materialByKey,
 } from "../config/contractWeights";
-
-const INSPECTION_SERVICE_KEY = "s58"; // SERVIÇOS DE INSPEÇÃO LP/PM E CERTIFICAÇÕES
+import { delineationServices } from "./requestFactory";
 
 function emptyLine(
   key: string,
@@ -57,7 +56,7 @@ function setQtd(lines: IBudgetLine[], key: string, qtd: number): void {
 /**
  * Builds the fabrication budget mask from the Eng. Industrial delineation:
  * machining/finishing/assembly hours → CONTRACT_LABOR by complexity,
- * inspection hours → Tabela 1, raw materials (kg) → CONTRACT_MATERIALS.
+ * additional services → Tabela 1, raw materials (kg) → CONTRACT_MATERIALS.
  * SUBCON items have no delineation — their cost comes from the supplier quote.
  */
 export function delineationToBudget(
@@ -78,9 +77,6 @@ export function delineationToBudget(
     const caldeiraria = CONTRACT_LABOR.filter(
       (l) => l.servico === "Caldeiraria" && l.complexidade === complexidade,
     )[0];
-    const engenharia = CONTRACT_LABOR.filter(
-      (l) => l.servico === "Engenharia de Fabricação",
-    )[0];
 
     if (usinagem) setQtd(tables.tabela2Labor, usinagem.key, d.horasUsinagem);
     // Acabamento e montagem são executados pela caldeiraria no contrato.
@@ -91,8 +87,8 @@ export function delineationToBudget(
         (d.horasAcabamento || 0) + (d.horasMontagem || 0),
       );
     }
-    if (engenharia && d.inspecaoDimensional) {
-      setQtd(tables.tabela1, INSPECTION_SERVICE_KEY, d.horasInspecao);
+    for (const s of delineationServices(d)) {
+      setQtd(tables.tabela1, s.serviceKey, s.qtd);
     }
 
     for (const m of d.materials ?? []) {

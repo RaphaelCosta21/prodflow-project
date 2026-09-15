@@ -14,6 +14,7 @@ import { BudgetService } from "../../services/BudgetService";
 import { useUpdateFabricationBudget } from "../../api/fids";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { delineationToBudget } from "../../utils/delineationToBudget";
+import { isSubconItem } from "../../utils/budgetApproval";
 import { exportBudgetExcel } from "../../utils/exportBudgetExcel";
 import { formatCurrencyBRL, formatNumber } from "../../utils/formatters";
 import { useUIStore } from "../../stores/useUIStore";
@@ -25,7 +26,8 @@ export interface IFabricationBudgetMaskProps {
   fid: string;
   data: IFabricationRequest;
   subItem: ISubItem;
-  readOnly?: boolean;
+  headerReadOnly?: boolean;
+  tablesReadOnly?: boolean;
 }
 
 const peso = (v: number): string => (v ? formatNumber(v, 6) : "—");
@@ -34,7 +36,8 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
   fid,
   data,
   subItem,
-  readOnly,
+  headerReadOnly,
+  tablesReadOnly,
 }) => {
   const user = useCurrentUser();
   const addToast = useUIStore((s) => s.addToast);
@@ -134,7 +137,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
           >
             Baixar Excel
           </Button>
-          {!readOnly && (
+          {!tablesReadOnly && !isSubconItem(subItem) && (
             <Button icon={<ArrowSync20Regular />} onClick={onRefill}>
               Recarregar do delineamento
             </Button>
@@ -143,7 +146,11 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
             appearance="primary"
             icon={<Save20Regular />}
             onClick={onSave}
-            disabled={readOnly || !dirty || updateBudget.isLoading}
+            disabled={
+              (headerReadOnly && tablesReadOnly) ||
+              !dirty ||
+              updateBudget.isLoading
+            }
           >
             Salvar
           </Button>
@@ -158,6 +165,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
           <Field label="Contrato">
             <Input
               value={budget.contrato}
+              disabled={headerReadOnly}
               onChange={(_, d) => editHeader({ contrato: d.value })}
             />
           </Field>
@@ -173,12 +181,14 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
           <Field label="N° do orçamento">
             <Input
               value={budget.numeroOrcamento}
+              disabled={headerReadOnly}
               onChange={(_, d) => editHeader({ numeroOrcamento: d.value })}
             />
           </Field>
           <Field label="Data de envio">
             <Input
               type="date"
+              disabled={headerReadOnly}
               value={budget.dataEnvio ? budget.dataEnvio.slice(0, 10) : ""}
               onChange={(_, d) =>
                 editHeader({
@@ -193,6 +203,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
             <Input
               type="number"
               min={0}
+              disabled={headerReadOnly}
               value={
                 budget.entregaDiasCorridos
                   ? String(budget.entregaDiasCorridos)
@@ -213,6 +224,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
         <BudgetLinesTable
           mode="materials"
           lines={budget.tabela2Materiais}
+          readOnly={tablesReadOnly}
           onChange={(l) => editTables({ tabela2Materiais: l })}
         />
       </GlassCard>
@@ -224,6 +236,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
         <BudgetLinesTable
           mode="labor"
           lines={budget.tabela2Labor}
+          readOnly={tablesReadOnly}
           onChange={(l) => editTables({ tabela2Labor: l })}
         />
       </GlassCard>
@@ -232,6 +245,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
         <BudgetLinesTable
           mode="services"
           lines={budget.tabela1}
+          readOnly={tablesReadOnly}
           onChange={(l) => editTables({ tabela1: l })}
         />
       </GlassCard>
@@ -266,6 +280,7 @@ export const FabricationBudgetMask: React.FC<IFabricationBudgetMaskProps> = ({
           className={styles.obs}
           value={budget.observacoes ?? ""}
           resize="vertical"
+          disabled={headerReadOnly}
           onChange={(_, d) => editHeader({ observacoes: d.value })}
         />
       </GlassCard>

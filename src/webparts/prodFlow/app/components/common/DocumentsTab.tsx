@@ -90,7 +90,7 @@ export const DocumentsTab: React.FC<IDocumentsTabProps> = ({ data }) => {
     <div className={styles.wrap}>
       <GlassCard
         title="Documentos do FID"
-        subtitle="Desenho CRD, BOM, NF, databook e o Excel do orçamento."
+        subtitle="Desenho Top-Level, BOM, NF, databook e o Excel do orçamento."
         actions={
           <>
             <input

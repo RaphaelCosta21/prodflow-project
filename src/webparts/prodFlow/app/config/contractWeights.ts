@@ -429,6 +429,10 @@ export function materialByKey(key: string): IContractMaterialRow | undefined {
   return CONTRACT_MATERIALS.filter((m) => m.key === key)[0];
 }
 
+export function serviceByKey(key: string): IContractServiceRow | undefined {
+  return CONTRACT_SERVICES.filter((s) => s.key === key)[0];
+}
+
 export function laborRow(
   servico: string,
   complexidade?: Complexity,

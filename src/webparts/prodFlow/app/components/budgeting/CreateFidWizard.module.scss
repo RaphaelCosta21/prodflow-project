@@ -212,32 +212,6 @@
   grid-column: 1 / -1;
 }
 
-/* ── OS number: fixed 6000 prefix sits outside the input ── */
-.osRow {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  min-width: 0;
-}
-
-.osPrefix {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card-bg-elevated);
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.osInput {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .fixedValue {
   display: inline-flex;
   align-items: center;

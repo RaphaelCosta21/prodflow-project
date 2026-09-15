@@ -27,6 +27,7 @@ import {
   Edit16Regular,
   Delete16Regular,
   BranchFork16Regular,
+  LockClosed16Regular,
 } from "@fluentui/react-icons";
 import { IFabricationRequest, ISubItem, WorkflowKind } from "../../models";
 import { buildSubItemTree, ISubItemNode } from "../../utils/subItemTree";
@@ -43,6 +44,7 @@ import {
   useReplicateStrategy,
   useAddSubItem,
   useDeleteSubItem,
+  useRequestFabAnalysis,
 } from "../../api/fids";
 import { useAccessLevel } from "../../hooks/useAccessLevel";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -52,12 +54,12 @@ import { subItemAttendanceOf } from "../../utils/classification";
 import GlassCard from "../common/GlassCard";
 import EmptyState from "../common/EmptyState";
 import StatusBadge from "../common/StatusBadge";
+import FidDrawingCard from "../common/FidDrawingCard";
 import BomImport from "./BomImport";
 import ClassificationCard from "./ClassificationCard";
 import SubItemDrawings from "./SubItemDrawings";
 import styles from "./SubItemStrategyTab.module.scss";
 
-// Flattens the ids of a node's children (directOnly) or every descendant below it.
 function collectDescendantIds(
   node: ISubItemNode,
   directOnly: boolean,
@@ -70,13 +72,22 @@ function collectDescendantIds(
   return ids;
 }
 
-// Signals delineation/quotation work already exists — changing strategy would discard it.
 function hasStartedWork(node: ISubItem): boolean {
   return (
     !!node.startedAt ||
     !!node.delineation ||
     !!node.quotation ||
+    !!node.selectedQuotationId ||
     (!!node.status && node.status !== "NotStarted")
+  );
+}
+
+function canRequestAnalysis(node: ISubItem): boolean {
+  return (
+    !node.strategy &&
+    !node.startedAt &&
+    !node.engAnalysis?.requestedAt &&
+    !hasStartedWork(node)
   );
 }
 
@@ -84,6 +95,10 @@ function chipClassFor(strategy: string): string {
   if (strategy === "Buy") return styles.chipBuy;
   if (strategy === "Make") return styles.chipMake;
   return styles.chipNa;
+}
+
+function makeLabel(node: Pick<ISubItem, "makeSite">): string {
+  return node.makeSite === "Subcon" ? "Make · SUB" : "Make · IH";
 }
 
 export interface ISubItemStrategyTabProps {
@@ -98,7 +113,9 @@ interface IRowProps {
   fid: string;
   flow: WorkflowKind;
   actor: string;
-  canEdit: boolean;
+  canManage: boolean;
+  canOverrideMake: boolean;
+  isRequesting: boolean;
   editing: boolean;
   followingSiblingIds: string[];
   selected: { [id: string]: boolean };
@@ -109,6 +126,7 @@ interface IRowProps {
   onAddChild: (node: ISubItemNode) => void;
   onAddSibling: (node: ISubItemNode) => void;
   onDelete: (node: ISubItemNode) => void;
+  onRequestAnalysis: (id: string) => void;
 }
 
 const Row: React.FC<IRowProps> = ({
@@ -118,7 +136,9 @@ const Row: React.FC<IRowProps> = ({
   fid,
   flow,
   actor,
-  canEdit,
+  canManage,
+  canOverrideMake,
+  isRequesting,
   editing,
   followingSiblingIds,
   selected,
@@ -129,6 +149,7 @@ const Row: React.FC<IRowProps> = ({
   onAddChild,
   onAddSibling,
   onDelete,
+  onRequestAnalysis,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
   const update = useUpdateSubItem(fid);
@@ -136,20 +157,32 @@ const Row: React.FC<IRowProps> = ({
   const addToast = useUIStore((s) => s.addToast);
   const hasChildren = node.children.length > 0;
   const strategyKey = strategyKeyOf(node.strategy, node.buyType, node.makeSite);
-  const options = strategyOptionsFor(hasChildren, flow);
+  const options = strategyOptionsFor(
+    hasChildren,
+    flow,
+    canOverrideMake ? "admin" : "planning",
+  );
   const currentOption = strategyKey ? optionByKey(strategyKey) : undefined;
   const isNa = node.strategy === "NA";
   const startable = !!node.strategy && !isNa && !isSubItemCosted(node.status);
+  const analysisPending =
+    !!node.engAnalysis?.requestedAt && !node.engAnalysis?.decidedAt;
+  const makeLocked = node.strategy === "Make" && !canOverrideMake;
+  const analysisEligible = canRequestAnalysis(node);
+  const selectable = startable || analysisEligible;
   const drawings = node.drawings?.length ?? 0;
   const workStarted = hasStartedWork(node);
+  const canEditChips = canManage && !analysisPending && !makeLocked;
   const canReplicate =
-    canEdit &&
+    canEditChips &&
     !!currentOption &&
     !isNa &&
+    (!currentOption || currentOption.strategy !== "Make" || canOverrideMake) &&
     !replicate.isLoading &&
     (hasChildren || followingSiblingIds.length > 0);
 
   const [pendingKey, setPendingKey] = React.useState<string | undefined>();
+  const [resetOpen, setResetOpen] = React.useState(false);
   const [buf, setBuf] = React.useState({
     pn: node.pn,
     descricao: node.descricao,
@@ -190,8 +223,41 @@ const Row: React.FC<IRowProps> = ({
     update.mutate({ subItemId: node.id, by: actor, changes });
   };
 
+  const clearStrategy = (): void => {
+    update.mutate({
+      subItemId: node.id,
+      by: actor,
+      changes: {
+        strategy: undefined,
+        buyType: undefined,
+        makeSite: undefined,
+        status: "NotStarted",
+        delineation: undefined,
+        quotation: undefined,
+        selectedQuotationId: undefined,
+        fabricationBudget: undefined,
+        startedAt: undefined,
+        startedBy: undefined,
+        ownerTeam: undefined,
+        resumeStatus: undefined,
+      },
+      log: {
+        type: analysisPending
+          ? "subitem:analysis-cancel"
+          : "subitem:strategy-reset",
+        message: analysisPending
+          ? `Solicitação de análise cancelada — ${node.pn}`
+          : `Estratégia resetada — ${node.pn}`,
+      },
+    });
+  };
+
   const onChipClick = (key: string): void => {
-    if (key === strategyKey) return;
+    if (!canEditChips) return;
+    if (key === strategyKey) {
+      setResetOpen(true);
+      return;
+    }
     if (workStarted) {
       setPendingKey(key);
       return;
@@ -240,13 +306,78 @@ const Row: React.FC<IRowProps> = ({
     onToggleEdit(node.id);
   };
 
+  const strategyCell = (): React.ReactNode => {
+    if (analysisPending) {
+      return (
+        <Tooltip
+          content={
+            canManage
+              ? "Aguardando decisão da Engenharia Industrial — clique para cancelar a solicitação e resetar."
+              : "Aguardando decisão da Engenharia Industrial na aba Delineamento de Fabricação."
+          }
+          relationship="label"
+        >
+          <button
+            type="button"
+            className={`${styles.chip} ${styles.chipMake} ${styles.chipPending}`}
+            disabled={!canManage}
+            onClick={() => setResetOpen(true)}
+          >
+            Make · em análise
+          </button>
+        </Tooltip>
+      );
+    }
+
+    if (makeLocked) {
+      return (
+        <Tooltip
+          content="Definido pela Engenharia Industrial — alterável apenas em Delineamento de Fabricação."
+          relationship="label"
+        >
+          <span
+            className={`${styles.chip} ${styles.chipMake} ${styles.chipActive}`}
+          >
+            {makeLabel(node)}
+            <LockClosed16Regular />
+          </span>
+        </Tooltip>
+      );
+    }
+
+    return options.map((o) => {
+      const active = strategyKey === o.key;
+      return (
+        <Tooltip
+          key={o.key}
+          content={
+            active ? `${o.label} — clique para resetar a escolha` : o.label
+          }
+          relationship="label"
+        >
+          <button
+            type="button"
+            className={`${styles.chip} ${chipClassFor(o.strategy)} ${
+              active ? styles.chipActive : ""
+            }`}
+            disabled={!canEditChips}
+            aria-pressed={active}
+            onClick={() => onChipClick(o.key)}
+          >
+            {o.short}
+          </button>
+        </Tooltip>
+      );
+    });
+  };
+
   return (
     <React.Fragment>
       <div className={`${styles.row} ${isNa ? styles.rowNa : ""}`}>
         <div className={styles.select}>
           <Checkbox
             checked={!!selected[node.id]}
-            disabled={!canEdit || !startable}
+            disabled={!canManage || !selectable}
             onChange={(_, d) => onToggleSelect(node.id, !!d.checked)}
             aria-label={`Selecionar ${node.pn}`}
           />
@@ -311,24 +442,30 @@ const Row: React.FC<IRowProps> = ({
         </div>
 
         <div className={styles.strategy}>
-          {options.map((o) => {
-            const active = strategyKey === o.key;
-            return (
-              <Tooltip key={o.key} content={o.label} relationship="label">
-                <button
-                  type="button"
-                  className={`${styles.chip} ${chipClassFor(o.strategy)} ${
-                    active ? styles.chipActive : ""
-                  }`}
-                  disabled={!canEdit}
-                  aria-pressed={active}
-                  onClick={() => onChipClick(o.key)}
-                >
-                  {o.short}
-                </button>
-              </Tooltip>
-            );
-          })}
+          {strategyCell()}
+          {canManage && (
+            <Tooltip
+              content={
+                analysisEligible
+                  ? "Solicitar análise da Engenharia Industrial para esta linha."
+                  : node.strategy
+                    ? "A análise só pode ser solicitada em linha sem estratégia definida."
+                    : "A análise só pode ser solicitada antes de iniciar trabalho."
+              }
+              relationship="label"
+            >
+              <button
+                type="button"
+                className={`${styles.chip} ${styles.chipAnalysis} ${
+                  analysisPending ? styles.chipActive : ""
+                }`}
+                disabled={!analysisEligible || isRequesting}
+                onClick={() => onRequestAnalysis(node.id)}
+              >
+                Eng. Ind.
+              </button>
+            </Tooltip>
+          )}
         </div>
 
         <div className={styles.drawings}>
@@ -359,7 +496,7 @@ const Row: React.FC<IRowProps> = ({
         </div>
 
         <div className={styles.actions}>
-          {canEdit && (
+          {canManage && (
             <Menu>
               <MenuTrigger disableButtonEnhancement>
                 <Button
@@ -473,6 +610,42 @@ const Row: React.FC<IRowProps> = ({
         </DialogSurface>
       </Dialog>
 
+      <Dialog
+        open={resetOpen}
+        onOpenChange={(_, d) => {
+          if (!d.open) setResetOpen(false);
+        }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Resetar a escolha?</DialogTitle>
+            <DialogContent>
+              A estratégia deste item voltará a ficar{" "}
+              <strong>indefinida</strong> e{" "}
+              <strong>todo o trabalho já realizado</strong> (delineamento,
+              cotação, orçamento e roteamento) será resetado. Deseja continuar?
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                onClick={() => setResetOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                onClick={() => {
+                  clearStrategy();
+                  setResetOpen(false);
+                }}
+              >
+                Resetar escolha
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
       {expanded &&
         node.children.map((child, i) => (
           <Row
@@ -483,7 +656,9 @@ const Row: React.FC<IRowProps> = ({
             fid={fid}
             flow={flow}
             actor={actor}
-            canEdit={canEdit}
+            canManage={canManage}
+            canOverrideMake={canOverrideMake}
+            isRequesting={isRequesting}
             editing={!!editingIds[child.id]}
             followingSiblingIds={node.children.slice(i + 1).map((c) => c.id)}
             selected={selected}
@@ -494,6 +669,7 @@ const Row: React.FC<IRowProps> = ({
             onAddChild={onAddChild}
             onAddSibling={onAddSibling}
             onDelete={onDelete}
+            onRequestAnalysis={onRequestAnalysis}
           />
         ))}
     </React.Fragment>
@@ -508,6 +684,7 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
   const { teams, isAdmin } = useAccessLevel();
   const addToast = useUIStore((s) => s.addToast);
   const startSubItems = useStartSubItems(fid);
+  const requestAnalysis = useRequestFabAnalysis(fid);
   const addSubItem = useAddSubItem(fid);
   const deleteSubItem = useDeleteSubItem(fid);
   const [selected, setSelected] = React.useState<{ [id: string]: boolean }>({});
@@ -516,17 +693,58 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
   );
   const [drawingsFor, setDrawingsFor] = React.useState<ISubItem | undefined>();
 
-  const canEdit = isAdmin || teams.indexOf("planning") >= 0;
+  const canManage = isAdmin || teams.indexOf("planning") >= 0;
+  const canOverrideMake = isAdmin;
   const flow = workflowOf(data.tipoOrcamento);
   const tree = React.useMemo(
     () => buildSubItemTree(data.subItems),
     [data.subItems],
   );
 
+  const selectedIds = React.useMemo(
+    () => Object.keys(selected).filter((k) => selected[k]),
+    [selected],
+  );
+
+  const startableSet = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const s of data.subItems) {
+      if (s.strategy && s.strategy !== "NA" && !s.startedAt) ids.add(s.id);
+    }
+    return ids;
+  }, [data.subItems]);
+
+  const analysisEligibleSet = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const s of data.subItems) {
+      if (canRequestAnalysis(s)) ids.add(s.id);
+    }
+    return ids;
+  }, [data.subItems]);
+
+  const pendingAnalysisCount = React.useMemo(
+    () =>
+      data.subItems.filter(
+        (s) => !!s.engAnalysis?.requestedAt && !s.engAnalysis?.decidedAt,
+      ).length,
+    [data.subItems],
+  );
+
+  const undefinedCount = React.useMemo(
+    () =>
+      data.subItems.filter((s) => !s.strategy && !s.engAnalysis?.requestedAt)
+        .length,
+    [data.subItems],
+  );
+
+  const selectedStartable = selectedIds.filter((id) => startableSet.has(id));
+  const selectedAnalysisEligible = selectedIds.filter((id) =>
+    analysisEligibleSet.has(id),
+  );
+
   const toggleEditing = (id: string): void =>
     setEditingIds((s) => ({ ...s, [id]: !s[id] }));
 
-  // Next sequential F/N within a parent group (drives the hierarchical 1.1, 1.2… numbering).
   const nextFindNumber = (parentId: string | undefined): string => {
     let max = 0;
     for (const s of data.subItems) {
@@ -576,13 +794,6 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
     });
   };
 
-  // Já roteados (startedAt) saem da fila para o botão não reenviá-los ao time.
-  const startable = data.subItems.filter(
-    (s) => s.strategy && s.strategy !== "NA" && !s.startedAt,
-  );
-  const undefinedCount = data.subItems.filter((s) => !s.strategy).length;
-  const selectedIds = Object.keys(selected).filter((k) => selected[k]);
-
   const start = (ids: string[]): void => {
     if (ids.length === 0) return;
     startSubItems.mutate(
@@ -597,18 +808,57 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
     );
   };
 
+  const request = (ids: string[]): void => {
+    if (ids.length === 0) return;
+    requestAnalysis.mutate(
+      { subItemIds: ids, by: user.displayName },
+      {
+        onSuccess: () => {
+          addToast(
+            `${ids.length} linha(s) enviada(s) para análise.`,
+            "success",
+          );
+          setSelected({});
+        },
+        onError: (err) => addToast(String(err), "error"),
+      },
+    );
+  };
+
   const startButton = (
     <Button
       appearance="primary"
       icon={<Play20Regular />}
-      disabled={!canEdit || startSubItems.isLoading || startable.length === 0}
+      disabled={
+        !canManage ||
+        startSubItems.isLoading ||
+        startableSet.size === 0 ||
+        (selectedIds.length > 0 && selectedStartable.length === 0)
+      }
       onClick={() =>
-        start(selectedIds.length > 0 ? selectedIds : startable.map((s) => s.id))
+        start(
+          selectedIds.length > 0 ? selectedStartable : Array.from(startableSet),
+        )
       }
     >
       {selectedIds.length > 0
-        ? `Iniciar ${selectedIds.length} selecionado(s)`
+        ? `Iniciar ${selectedStartable.length} selecionado(s)`
         : "Iniciar todos definidos"}
+    </Button>
+  );
+
+  const requestButton = (
+    <Button
+      appearance="secondary"
+      icon={<BranchFork16Regular />}
+      disabled={
+        !canManage ||
+        requestAnalysis.isLoading ||
+        selectedAnalysisEligible.length === 0
+      }
+      onClick={() => request(selectedAnalysisEligible)}
+    >
+      Solicitar análise ({selectedAnalysisEligible.length})
     </Button>
   );
 
@@ -616,31 +866,44 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
     <div className={styles.tab}>
       <GlassCard
         title="BOM do TOP LEVEL"
-        subtitle="Importe o CSV/XLSX da engenharia ou monte a BOM manualmente, item a item. Cada linha recebe uma estratégia obrigatória."
+        subtitle="Importe o CSV/XLSX da engenharia ou monte a BOM manualmente, item a item."
       >
         <BomImport
           fid={fid}
           attendance={subItemAttendanceOf(data.atendimento)}
-          canEdit={canEdit}
+          canEdit={canManage}
           onAddItem={addRoot}
         />
       </GlassCard>
 
+      <FidDrawingCard data={data} compact canEdit={canManage} />
+
       <GlassCard
         title="Estratégia por sub-item"
         subtitle={
-          undefinedCount > 0
-            ? `${undefinedCount} linha(s) ainda sem estratégia definida.`
-            : "Todas as linhas têm estratégia definida."
+          pendingAnalysisCount > 0
+            ? `${pendingAnalysisCount} linha(s) em análise pela Engenharia Industrial.`
+            : undefinedCount > 0
+              ? `${undefinedCount} linha(s) ainda sem estratégia definida.`
+              : "Todas as linhas têm estratégia definida."
         }
         actions={
           <div className={styles.strategyActions}>
             <ClassificationCard fid={fid} data={data} compact />
-            {canEdit ? (
-              startButton
+            {canManage ? (
+              <>
+                {requestButton}
+                {startButton}
+              </>
             ) : (
-              <Tooltip content="Ação do time Planejamento" relationship="label">
-                <span>{startButton}</span>
+              <Tooltip
+                content="Ações do time Planejamento"
+                relationship="label"
+              >
+                <span className={styles.readonlyActions}>
+                  {requestButton}
+                  {startButton}
+                </span>
               </Tooltip>
             )}
           </div>
@@ -672,7 +935,9 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
                 fid={fid}
                 flow={flow}
                 actor={user.displayName}
-                canEdit={canEdit}
+                canManage={canManage}
+                canOverrideMake={canOverrideMake}
+                isRequesting={requestAnalysis.isLoading}
                 editing={!!editingIds[node.id]}
                 followingSiblingIds={tree.slice(i + 1).map((n) => n.id)}
                 selected={selected}
@@ -685,6 +950,7 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
                 onAddChild={addChild}
                 onAddSibling={addSibling}
                 onDelete={onDelete}
+                onRequestAnalysis={(id) => request([id])}
               />
             ))}
           </div>
@@ -694,7 +960,7 @@ export const SubItemStrategyTab: React.FC<ISubItemStrategyTabProps> = ({
       <SubItemDrawings
         fid={fid}
         subItem={drawingsFor}
-        canEdit={canEdit}
+        canEdit={canManage}
         onClose={() => setDrawingsFor(undefined)}
       />
     </div>

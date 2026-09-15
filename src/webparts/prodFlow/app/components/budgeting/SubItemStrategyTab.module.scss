@@ -142,6 +142,9 @@
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -182,6 +185,20 @@
 
 .chipNa.chipActive {
   background: var(--text-muted);
+}
+
+.chipPending {
+  border-style: dashed;
+}
+
+.chipAnalysis {
+  border-color: var(--secondary-accent);
+  color: var(--secondary-accent);
+}
+
+.readonlyActions {
+  display: inline-flex;
+  gap: 8px;
 }
 
 .identityEdit {

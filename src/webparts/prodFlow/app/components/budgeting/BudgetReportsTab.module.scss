@@ -4,6 +4,39 @@
   gap: 16px;
 }
 
+.review {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tally {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--card-bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.tallyApproved {
+  color: var(--success);
+  background: var(--success-bg);
+  border-color: var(--success);
+}
+
+.tallyRevision {
+  color: var(--warning);
+  background: var(--warning-bg);
+  border-color: var(--warning);
+}
+
+.maskNotice {
+  margin-bottom: 12px;
+}
+
 .summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -47,6 +80,54 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.delineation {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.delineationGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--card-bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.delineationTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.delineationList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.delineationStrong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.delineationEmpty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .pending {

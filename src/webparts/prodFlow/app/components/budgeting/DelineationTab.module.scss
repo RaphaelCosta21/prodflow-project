@@ -21,6 +21,117 @@
   gap: 8px;
 }
 
+.analysisActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.analysisFlag {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--card-bg-elevated);
+}
+
+.analysisList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analysisTitle {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.analysisRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.analysisItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-family: "JetBrains Mono", "Cascadia Mono", monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.analysisButtons {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+// Mesmos chips da página de estratégia (Sub-itens & Estratégia).
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg-elevated);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--primary-accent);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &:disabled:not(.chipActive) {
+    opacity: 0.5;
+  }
+}
+
+.chipActive {
+  color: #fff;
+  border-color: transparent;
+}
+
+.chipMake.chipActive {
+  background: var(--success, #16a34a);
+}
+
 .collapsedSummary {
   display: block;
   width: 100%;
@@ -89,15 +200,53 @@
   gap: 12px;
 }
 
-.inspection {
-  display: flex;
-  align-items: flex-end;
-  gap: 20px;
+.services {
   margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--card-bg-elevated);
-  border: 1px solid var(--border-subtle);
+}
+
+.servicesHead,
+.serviceRow {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 70px 110px 110px 120px;
+  gap: 12px;
+  align-items: center;
+}
+
+.servicesHead {
+  margin-top: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.serviceRow {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.servicesHead span:nth-child(n + 2),
+.serviceRow > span:nth-child(n + 2) {
+  text-align: right;
+  justify-self: end;
+}
+
+.criterio {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.peso {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
 }
 
 .materials {
@@ -116,17 +265,34 @@
   color: var(--text-secondary);
 }
 
-.materialRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px 36px;
-  gap: 8px;
-  align-items: center;
+.material {
   padding: 8px 0;
   border-bottom: 1px solid var(--border-subtle);
 
   &:last-child {
     border-bottom: 0;
   }
+}
+
+.materialRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 36px;
+  gap: 8px;
+  align-items: start;
+}
+
+.materialDims {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 130px));
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  padding-right: 44px;
+}
+
+.dimsLabel {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .unit {
@@ -170,5 +336,15 @@
 
   .materialRow {
     grid-template-columns: minmax(0, 1fr) 100px 36px;
+  }
+
+  .analysisRow {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  .analysisButtons {
+    grid-column: 1;
+    justify-content: flex-start;
   }
 }

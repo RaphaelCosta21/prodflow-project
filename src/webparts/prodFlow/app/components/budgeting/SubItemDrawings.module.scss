@@ -6,11 +6,48 @@
   color: var(--text-secondary);
 }
 
-.uploadRow {
+.dropzone {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: var(--card-bg-elevated);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.dropzoneActive {
+  border-color: var(--primary-accent);
+  background: var(--hover-bg);
+  box-shadow: var(--shadow-glow);
+}
+
+.dropIcon {
+  flex-shrink: 0;
+  color: var(--primary-accent);
+}
+
+.dropText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+
+  span {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
 }
 
 .list {
@@ -59,5 +96,12 @@
   &:hover {
     color: var(--primary-accent);
     text-decoration: underline;
+  }
+}
+
+@media (max-width: 640px) {
+  .dropzone {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

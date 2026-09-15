@@ -21,8 +21,13 @@ import { useUIStore } from "../../stores/useUIStore";
 import { canTransition } from "../../utils/statusHelpers";
 import { REQUEST_STATUS_MAP } from "../../config/statuses";
 import { workflowOf } from "../../config/workflows";
+import {
+  allReportsApproved,
+  blockingReasons,
+} from "../../utils/budgetApproval";
 import { formatDate } from "../../utils/formatters";
 import GlassCard from "../common/GlassCard";
+import NoticeBar from "../common/NoticeBar";
 import HistoryTimeline from "../common/HistoryTimeline";
 import styles from "./ApprovalTab.module.scss";
 
@@ -53,6 +58,9 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
   const [dialog, setDialog] = React.useState<null | "approve" | "reject">(null);
   const [signatureRef, setSignatureRef] = React.useState("");
   const [reason, setReason] = React.useState("");
+
+  const reportsReady = allReportsApproved(data);
+  const pendencias = reportsReady ? [] : blockingReasons(data);
 
   const may = (to: RequestStatus): boolean =>
     canTransition(data.status, to, flow, data.resumeStatus);
@@ -138,18 +146,42 @@ export const ApprovalTab: React.FC<IApprovalTabProps> = ({ fid, data }) => {
       </GlassCard>
 
       <GlassCard title="Ações">
+        {may("Submitted") && !reportsReady && (
+          <NoticeBar
+            tone="warning"
+            title="Envio bloqueado até a aprovação dos relatórios"
+            className={styles.gateNotice}
+          >
+            <ul className={styles.gateList}>
+              {pendencias.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </NoticeBar>
+        )}
         <div className={styles.actions}>
           {may("Submitted") && (
             <Gate to="Submitted">
-              <Button
-                appearance="primary"
-                disabled={!canMoveTo("Submitted")}
-                onClick={() =>
-                  go("Submitted", "Orçamento enviado à Petrobras.")
+              <Tooltip
+                content={
+                  reportsReady
+                    ? "Enviar o orçamento à Petrobras"
+                    : pendencias.join(" · ")
                 }
+                relationship="label"
               >
-                Enviar à Petrobras
-              </Button>
+                <span>
+                  <Button
+                    appearance="primary"
+                    disabled={!canMoveTo("Submitted") || !reportsReady}
+                    onClick={() =>
+                      go("Submitted", "Orçamento enviado à Petrobras.")
+                    }
+                  >
+                    Enviar à Petrobras
+                  </Button>
+                </span>
+              </Tooltip>
             </Gate>
           )}
           {data.status === "Submitted" && (

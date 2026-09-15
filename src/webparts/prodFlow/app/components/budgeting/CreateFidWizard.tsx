@@ -46,7 +46,6 @@ import styles from "./CreateFidWizard.module.scss";
 
 const COMPLEXITIES = COMPLEXITY_OPTIONS;
 const ATTENDANCES = ATTENDANCE_OPTIONS;
-const OS_PREFIX = "6000";
 
 interface IStep {
   title: string;
@@ -58,7 +57,13 @@ const STEPS: IStep[] = [
   {
     title: "Identificação",
     hint: "Ordem de serviço, desenho de referência e escopo",
-    fields: ["osNumber", "drawingCode", "partNumberOii", "descricao"],
+    fields: [
+      "osNumber",
+      "drawingCode",
+      "partNumberOii",
+      "tituloProjeto",
+      "descricao",
+    ],
   },
   {
     title: "Escopo & Complexidade",
@@ -73,7 +78,7 @@ const STEPS: IStep[] = [
   {
     title: "Prazos & Observações",
     hint: "Datas de referência e notas para o time",
-    fields: ["solicitacaoOrcamento", "prazoDiasCorridos", "comentarios"],
+    fields: ["solicitacaoOrcamento", "comentarios"],
   },
   {
     title: "Conferência",
@@ -86,9 +91,10 @@ const LAST_STEP = STEPS.length - 1;
 
 function initialForm(user: string): INewRequestInput {
   return {
-    osNumber: OS_PREFIX,
+    osNumber: "",
     drawingCode: "",
     partNumberOii: "",
+    tituloProjeto: "",
     descricao: "",
     comentarios: "",
     tipoOrcamento: "Fabricação",
@@ -96,7 +102,6 @@ function initialForm(user: string): INewRequestInput {
     complexidadeCaldeiraria: "A definir",
     atendimento: "A definir",
     solicitacaoOrcamento: new Date().toISOString().slice(0, 10),
-    prazoDiasCorridos: undefined,
     createdBy: user,
   };
 }
@@ -142,7 +147,6 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
   );
   const [hasOii, setHasOii] = React.useState(false);
   const [crdFiles, setCrdFiles] = React.useState<File[]>([]);
-  const [oiiFiles, setOiiFiles] = React.useState<File[]>([]);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const busy = createFid.isLoading || uploadAttachments.isLoading;
@@ -154,7 +158,6 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
     setForm(initialForm(user));
     setHasOii(false);
     setCrdFiles([]);
-    setOiiFiles([]);
     setStep(0);
     setErrors({});
   }, [open, user]);
@@ -240,18 +243,11 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
 
   // The FID number only exists after creation, so the picked files are uploaded here.
   const finishWithAttachments = (fid: string): void => {
-    const items: IPendingAttachment[] = [
-      ...crdFiles.map((file) => ({
-        file,
-        category: "CRD" as const,
-        refCode: form.drawingCode,
-      })),
-      ...oiiFiles.map((file) => ({
-        file,
-        category: "OII" as const,
-        refCode: form.partNumberOii,
-      })),
-    ];
+    const items: IPendingAttachment[] = crdFiles.map((file) => ({
+      file,
+      category: "CRD" as const,
+      refCode: form.drawingCode,
+    }));
     const done = (): void => {
       onOpenChange(false);
       navigate(fidDetailPath(fid));
@@ -289,7 +285,11 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
   };
 
   const onSubmit = (): void => {
-    const allErrors = { ...validateNewRequest(form), ...oiiError() };
+    const formToSubmit: INewRequestInput = {
+      ...form,
+      solicitacaoOrcamento: new Date().toISOString().slice(0, 10),
+    };
+    const allErrors = { ...validateNewRequest(formToSubmit), ...oiiError() };
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
       const firstBroken = STEPS.findIndex((s) =>
@@ -298,7 +298,7 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
       if (firstBroken >= 0) setStep(firstBroken);
       return;
     }
-    createFid.mutate(buildNewRequest(form), {
+    createFid.mutate(buildNewRequest(formToSubmit), {
       onSuccess: (created) => {
         addToast(`FID ${created.fid} criado.`, "success");
         finishWithAttachments(created.fid);
@@ -388,28 +388,17 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                   className={styles.span2}
                   {...fieldProps("osNumber")}
                 >
-                  <div className={styles.osRow}>
-                    <span className={styles.osPrefix}>{OS_PREFIX}</span>
-                    <Input
-                      className={styles.osInput}
-                      value={
-                        form.osNumber.startsWith(OS_PREFIX)
-                          ? form.osNumber.slice(OS_PREFIX.length)
-                          : form.osNumber
-                      }
-                      inputMode="numeric"
-                      onChange={(_, d) => {
-                        const suffix = d.value
-                          .replace(/\D/g, "")
-                          .replace(/^6000/, "");
-                        set("osNumber", `${OS_PREFIX}${suffix}`);
-                      }}
-                      placeholder="786587"
-                    />
-                  </div>
+                  <Input
+                    value={form.osNumber}
+                    inputMode="numeric"
+                    onChange={(_, d) =>
+                      set("osNumber", d.value.replace(/\D/g, ""))
+                    }
+                    placeholder="786587"
+                  />
                 </Field>
                 <Field
-                  label="Desenho (CRD)"
+                  label="Desenho Top-Level"
                   required
                   className={styles.span2}
                   {...fieldProps("drawingCode")}
@@ -417,13 +406,13 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                   <Input
                     value={form.drawingCode}
                     onChange={(_, d) => set("drawingCode", d.value)}
-                    placeholder="DE-3000.00-1521-600-PEH-1321_D01"
+                    placeholder="Informe a referência do Desenho Top-Level"
                   />
                 </Field>
                 <div className={styles.span2}>
                   <FileDropzone
                     inputId="crd-files"
-                    ariaLabel="Anexos do desenho (CRD)"
+                    ariaLabel="Anexos do Desenho Top-Level"
                     files={crdFiles}
                     onFilesChange={setCrdFiles}
                     onReject={(m) => addToast(m, "warning")}
@@ -441,37 +430,37 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                       setHasOii(checked);
                       if (!checked) {
                         set("partNumberOii", "");
-                        setOiiFiles([]);
                       }
                     }}
                   />
                 </div>
                 {hasOii && (
-                  <>
-                    <Field
-                      label="Part Number OII"
-                      required
-                      className={styles.span2}
-                      {...fieldProps("partNumberOii")}
-                    >
-                      <Input
-                        value={form.partNumberOii ?? ""}
-                        onChange={(_, d) => set("partNumberOii", d.value)}
-                        placeholder="0662354"
-                      />
-                    </Field>
-                    <div className={styles.span2}>
-                      <FileDropzone
-                        inputId="oii-files"
-                        ariaLabel="Anexos do Part Number OII"
-                        files={oiiFiles}
-                        onFilesChange={setOiiFiles}
-                        onReject={(m) => addToast(m, "warning")}
-                        disabled={busy}
-                      />
-                    </div>
-                  </>
+                  <Field
+                    label="Part Number OII"
+                    required
+                    className={styles.span2}
+                    {...fieldProps("partNumberOii")}
+                  >
+                    <Input
+                      value={form.partNumberOii ?? ""}
+                      onChange={(_, d) => set("partNumberOii", d.value)}
+                      placeholder="0662354"
+                    />
+                  </Field>
                 )}
+
+                <Field
+                  label="Título do Projeto"
+                  required
+                  className={styles.span2}
+                  {...fieldProps("tituloProjeto")}
+                >
+                  <Input
+                    value={form.tituloProjeto}
+                    onChange={(_, d) => set("tituloProjeto", d.value)}
+                    placeholder="Informe o título do projeto"
+                  />
+                </Field>
 
                 <Field
                   label="Descrição Resumida"
@@ -616,32 +605,15 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
 
             {step === 2 && (
               <div className={styles.grid}>
-                <Field label="Solicitação de Orçamento">
+                <Field
+                  label="Solicitação de Orçamento"
+                  hint="Definido automaticamente na criação."
+                >
                   <Input
                     type="date"
                     value={form.solicitacaoOrcamento ?? ""}
-                    onChange={(_, d) => set("solicitacaoOrcamento", d.value)}
-                  />
-                </Field>
-                <Field
-                  label="Prazo de Entrega (dias corridos)"
-                  hint="Opcional — prazo negociado de fabricação."
-                  {...fieldProps("prazoDiasCorridos")}
-                >
-                  <Input
-                    type="number"
-                    min={0}
-                    value={
-                      form.prazoDiasCorridos === undefined
-                        ? ""
-                        : String(form.prazoDiasCorridos)
-                    }
-                    onChange={(_, d) =>
-                      set(
-                        "prazoDiasCorridos",
-                        d.value === "" ? undefined : Number(d.value),
-                      )
-                    }
+                    readOnly
+                    disabled
                   />
                 </Field>
 
@@ -690,23 +662,21 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                     value={hasOii ? form.partNumberOii : "Não possui"}
                   />
                   <ReviewCell
-                    label="Desenho (CRD)"
+                    label="Desenho Top-Level"
                     value={form.drawingCode}
+                    wide
+                  />
+                  <ReviewCell
+                    label="Título do Projeto"
+                    value={form.tituloProjeto}
                     wide
                   />
                   <ReviewCell label="Descrição" value={form.descricao} wide />
                   <ReviewCell
-                    label={`Anexos CRD (${crdFiles.length})`}
+                    label={`Anexos (${crdFiles.length})`}
                     value={crdFiles.map((f) => f.name).join(", ")}
                     wide
                   />
-                  {hasOii && (
-                    <ReviewCell
-                      label={`Anexos OII (${oiiFiles.length})`}
-                      value={oiiFiles.map((f) => f.name).join(", ")}
-                      wide
-                    />
-                  )}
                 </div>
 
                 <span className={styles.reviewGroup}>
@@ -752,14 +722,6 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                     label="Prazo de envio à Petrobras"
                     value={prazoEnvio ? formatDate(prazoEnvio) : "Sem SLA"}
                   />
-                  <ReviewCell
-                    label="Prazo de entrega"
-                    value={
-                      form.prazoDiasCorridos === undefined
-                        ? undefined
-                        : `${form.prazoDiasCorridos} dias corridos`
-                    }
-                  />
                   <ReviewCell label="Criado por" value={form.createdBy} />
                   <ReviewCell
                     label="Comentários"
@@ -769,8 +731,8 @@ export const CreateFidWizard: React.FC<ICreateFidWizardProps> = ({
                 </div>
 
                 <p className={styles.reviewNote}>
-                  O FID será criado na fase de Orçamentação com status Rascunho.
-                  A BOM e os anexos são importados na página do FID.
+                  O FID será criado na fase de Orçamentação com status Em
+                  Delineamento. A BOM pode ser importada na página do FID.
                 </p>
               </div>
             )}

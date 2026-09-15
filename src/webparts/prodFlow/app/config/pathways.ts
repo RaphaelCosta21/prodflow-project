@@ -27,7 +27,8 @@ export const PATHWAYS: Record<StrategyKey, IPathwayStep[]> = {
     { label: "Estoque", team: "warehouse", phase: 2 },
   ],
   makeInHouse: [
-    { label: "Estratégia", team: "planning", phase: 1 },
+    { label: "Solicitação de análise", team: "planning", phase: 1 },
+    { label: "Análise de fabricação", team: "industrialEngineering", phase: 1 },
     { label: "Delineamento", team: "industrialEngineering", phase: 1 },
     { label: "Abertura de WO", team: "planning", phase: 2 },
     { label: "Fabricação", team: "workshop", phase: 2 },
@@ -36,7 +37,8 @@ export const PATHWAYS: Record<StrategyKey, IPathwayStep[]> = {
   ],
   // Fabricação externa é cotada por Compras na fase 1, como qualquer linha comprada.
   makeSubcon: [
-    { label: "Estratégia", team: "planning", phase: 1 },
+    { label: "Solicitação de análise", team: "planning", phase: 1 },
+    { label: "Análise de fabricação", team: "industrialEngineering", phase: 1 },
     { label: "Cotação", team: "scm", phase: 1 },
     { label: "RC/PO", team: "purchasing", phase: 2 },
     { label: "Fabricação externa", team: "machining", phase: 2 },
