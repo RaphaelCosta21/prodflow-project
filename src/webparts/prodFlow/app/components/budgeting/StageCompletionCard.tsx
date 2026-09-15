@@ -40,9 +40,6 @@ export interface IStageCompletionCardProps {
 
 type StageDialog = "conclude" | "reopen" | "prompt";
 
-// Lembretes já dispensados nesta sessão — evita reabrir o modal a cada troca de aba.
-const dismissedPrompts = new Set<string>();
-
 export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
   fid,
   data,
@@ -63,21 +60,18 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
   const mayReopen = canReopenStage(data, stage, actor);
   const busy = conclude.isLoading || reopen.isLoading;
 
-  const promptKey = `${fid}:${stage}`;
-  const readyToConclude = mayEdit && readiness.ok && !state.concluido;
+  const promptable = mayEdit && !state.concluido;
+  const wasReady = React.useRef(readiness.ok);
 
+  // Dispara no instante em que a última pendência cai — nunca ao abrir uma aba já sem
+  // pendências, então um pedido de revisão só reabre o lembrete depois do retrabalho.
   React.useEffect(() => {
-    if (!readyToConclude || dismissedPrompts.has(promptKey)) return;
-    setDialog("prompt");
-  }, [readyToConclude, promptKey]);
-
-  const closeDialog = (): void => {
-    if (dialog === "prompt") dismissedPrompts.add(promptKey);
-    setDialog(undefined);
-  };
+    const previous = wasReady.current;
+    wasReady.current = readiness.ok;
+    if (!previous && readiness.ok && promptable) setDialog("prompt");
+  }, [readiness.ok, promptable]);
 
   const run = (kind: "conclude" | "reopen"): void => {
-    if (kind === "conclude") dismissedPrompts.add(promptKey);
     setDialog(undefined);
     const mutation = kind === "conclude" ? conclude : reopen;
     mutation.mutate(
@@ -199,7 +193,7 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
         open={dialog !== undefined}
         modalType="alert"
         onOpenChange={(_, d) => {
-          if (!d.open) closeDialog();
+          if (!d.open) setDialog(undefined);
         }}
       >
         <DialogSurface>
@@ -215,11 +209,14 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
               {dialog === "reopen"
                 ? "A aba volta a aceitar edições e o check verde sai da navegação até a etapa ser concluída de novo."
                 : dialog === "prompt"
-                  ? "Não há mais pendências nesta etapa. Concluir agora envia os relatórios para a conferência do time de Projects e deixa a aba somente leitura — ela só volta a aceitar edições se Projects pedir uma revisão."
-                  : "A aba ficará somente leitura e os relatórios seguem para a aprovação do time de Projects. Só é possível reabrir enquanto nenhum relatório desta etapa for aprovado."}
+                  ? "Não há mais pendências nesta etapa. Concluir agora envia os relatórios para a conferência do time de Projetos e deixa a aba somente leitura. Ela só volta a aceitar edições se Projetos pedir uma revisão."
+                  : "A aba ficará somente leitura e os relatórios seguem para a aprovação do time de Projetos. Só é possível reabrir enquanto nenhum relatório desta etapa for aprovado."}
             </DialogContent>
             <DialogActions>
-              <Button appearance="secondary" onClick={closeDialog}>
+              <Button
+                appearance="secondary"
+                onClick={() => setDialog(undefined)}
+              >
                 {dialog === "prompt" ? "Agora não" : "Cancelar"}
               </Button>
               <Button
