@@ -228,7 +228,9 @@ export const FidDetailPage: React.FC = () => {
     Partial<Record<FidTabKey, NavItemState>>
   >(() => {
     if (!data || data.subItems.length === 0) return {};
-    const routed = data.subItems.filter((s) => s.strategy && s.strategy !== "NA");
+    const routed = data.subItems.filter(
+      (s) => s.strategy && s.strategy !== "NA",
+    );
     const strategiesDone =
       data.subItems.every((s) => !!s.strategy) &&
       routed.every((s) => !!s.startedAt);

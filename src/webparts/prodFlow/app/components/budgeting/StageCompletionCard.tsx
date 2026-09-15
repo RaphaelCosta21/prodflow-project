@@ -15,10 +15,7 @@ import {
   LockClosed16Filled,
 } from "@fluentui/react-icons";
 import { BudgetStageKey, IFabricationRequest } from "../../models";
-import {
-  useConcludeBudgetStage,
-  useReopenBudgetStage,
-} from "../../api/fids";
+import { useConcludeBudgetStage, useReopenBudgetStage } from "../../api/fids";
 import { useAccessLevel } from "../../hooks/useAccessLevel";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useUIStore } from "../../stores/useUIStore";
@@ -151,9 +148,7 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
                 <LockClosed16Filled />
                 Edição travada
                 {state.concluidoPor ? ` · ${state.concluidoPor}` : ""}
-                {state.concluidoEm
-                  ? ` · ${formatDate(state.concluidoEm)}`
-                  : ""}
+                {state.concluidoEm ? ` · ${formatDate(state.concluidoEm)}` : ""}
               </span>
             </NoticeBar>
           )}
@@ -208,7 +203,9 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
               </Button>
               <Button
                 appearance="primary"
-                onClick={() => run(dialog === "conclude" ? "conclude" : "reopen")}
+                onClick={() =>
+                  run(dialog === "conclude" ? "conclude" : "reopen")
+                }
               >
                 Confirmar
               </Button>

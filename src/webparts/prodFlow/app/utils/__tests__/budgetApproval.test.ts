@@ -75,7 +75,10 @@ const buy = subItem({
 const projects = { teams: ["projects" as const], isAdmin: false };
 const scm = { teams: ["scm" as const], isAdmin: false };
 const planning = { teams: ["planning" as const], isAdmin: false };
-const engenharia = { teams: ["industrialEngineering" as const], isAdmin: false };
+const engenharia = {
+  teams: ["industrialEngineering" as const],
+  isAdmin: false,
+};
 
 describe("listBudgetReports", () => {
   it("roteia Make·InHouse para Delin. Fabricação e Make·SUBCON para Cotações", () => {
@@ -166,7 +169,9 @@ describe("reportEditability", () => {
     expect(reportEditability(draft, fabInHouse, planning).tablesEditable).toBe(
       false,
     );
-    expect(reportEditability(draft, parts, planning).tablesEditable).toBe(false);
+    expect(reportEditability(draft, parts, planning).tablesEditable).toBe(
+      false,
+    );
   });
 
   it("libera a máscara do SUBCON para Planejamento após Cotações concluída", () => {

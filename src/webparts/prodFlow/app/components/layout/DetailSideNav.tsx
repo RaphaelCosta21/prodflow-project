@@ -94,7 +94,9 @@ export const DetailSideNav: React.FC<IDetailSideNavProps> = ({
                   {mark && (
                     <span
                       className={
-                        mark === "revision" ? styles.revisionIcon : styles.doneIcon
+                        mark === "revision"
+                          ? styles.revisionIcon
+                          : styles.doneIcon
                       }
                       aria-label={markLabel}
                     >

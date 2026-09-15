@@ -186,7 +186,10 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
       { keys: pendingKeys, by: user.displayName },
       {
         onSuccess: () =>
-          addToast(`${pendingKeys.length} relatório(s) aprovado(s).`, "success"),
+          addToast(
+            `${pendingKeys.length} relatório(s) aprovado(s).`,
+            "success",
+          ),
         onError: (e) => addToast(String((e as Error).message ?? e), "error"),
       },
     );
