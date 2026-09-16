@@ -103,16 +103,11 @@ const PackageForm: React.FC<{
   const [busy, setBusy] = React.useState(false);
 
   const items = quotableItems(data);
-  // Contagem já considerando este pacote (ainda não salvo) para liberar a conclusão na hora.
+  // Contagem já considerando este pacote (ainda não salvo) — aqui é só informativa: o mínimo
+  // de cotações por item só é cobrado na conclusão da etapa.
   const countOf = React.useCallback(
     (subItemId: string): number => quotationCountFor(data, subItemId, pkg),
     [data, pkg],
-  );
-  // Itens que ainda não atingem o mínimo obrigatório — destacados para não passarem batido.
-  const belowMinimum = React.useMemo(
-    () =>
-      items.filter((i) => countOf(i.id) < REQUIRED_QUOTATIONS).map((i) => i.id),
-    [countOf, items],
   );
 
   const edit = (patch: Partial<IQuotationPackage>): void =>
@@ -208,14 +203,7 @@ const PackageForm: React.FC<{
     (id) => (lineFor(pkg, id)?.valorUnit ?? 0) <= 0,
   );
   const canSave = !!pkg.supplier.trim() && missingPrice.length === 0;
-  // Só dá para custear um item quando ele tem as cotações obrigatórias registradas.
-  const coveredBelowMinimum = pkg.coveredSubItemIds.filter(
-    (id) => countOf(id) < REQUIRED_QUOTATIONS,
-  );
-  const canConclude =
-    canSave &&
-    pkg.coveredSubItemIds.length > 0 &&
-    coveredBelowMinimum.length === 0;
+  const canConclude = canSave && pkg.coveredSubItemIds.length > 0;
 
   return (
     <Dialog open onOpenChange={(_, d) => !d.open && onClose()}>
@@ -302,12 +290,10 @@ const PackageForm: React.FC<{
 
             <div className={styles.itemsHead}>
               <span>Itens cobertos por esta cotação</span>
-              {belowMinimum.length > 0 && (
-                <span className={styles.itemsLegend}>
-                  {belowMinimum.length} sem as {REQUIRED_QUOTATIONS} cotações
-                  obrigatórias
-                </span>
-              )}
+              <span className={styles.itemsLegend}>
+                Registre as cotações uma a uma; o mínimo de{" "}
+                {REQUIRED_QUOTATIONS} por item só é cobrado ao concluir a etapa.
+              </span>
               <Button size="small" appearance="subtle" onClick={selectAllBuy}>
                 Selecionar todos
               </Button>
@@ -318,14 +304,6 @@ const PackageForm: React.FC<{
                 informe o valor ou desmarque o item.
               </div>
             )}
-            {coveredBelowMinimum.length > 0 && (
-              <div className={styles.itemsWarning}>
-                {coveredBelowMinimum.length} item(ns) marcado(s) ainda sem{" "}
-                {REQUIRED_QUOTATIONS} cotações registradas — só é possível
-                salvar; a conclusão exige o mínimo de {REQUIRED_QUOTATIONS}{" "}
-                cotações por item.
-              </div>
-            )}
 
             <div className={styles.itemsTable}>
               {items.map((item) => {
@@ -333,15 +311,10 @@ const PackageForm: React.FC<{
                 const line = lineFor(pkg, item.id);
                 const priceMissing = covered && (line?.valorUnit ?? 0) <= 0;
                 const count = countOf(item.id);
-                const missingQuotes = count < REQUIRED_QUOTATIONS;
                 return (
                   <div
                     key={item.id}
-                    className={
-                      missingQuotes
-                        ? `${styles.itemRow} ${styles.itemRowPending}`
-                        : styles.itemRow
-                    }
+                    className={styles.itemRow}
                     title={`${count}/${REQUIRED_QUOTATIONS} cotações registradas`}
                   >
                     <Checkbox
@@ -354,7 +327,11 @@ const PackageForm: React.FC<{
                       <span className={styles.desc}>{item.descricao}</span>
                     </div>
                     <span
-                      className={missingQuotes ? styles.countWarn : styles.qtd}
+                      className={
+                        count >= REQUIRED_QUOTATIONS
+                          ? styles.countOk
+                          : styles.qtd
+                      }
                     >
                       {count}/{REQUIRED_QUOTATIONS}
                     </span>
@@ -417,11 +394,6 @@ const PackageForm: React.FC<{
               appearance="primary"
               icon={<CheckmarkCircle20Regular />}
               disabled={!canConclude || upsert.isLoading}
-              title={
-                coveredBelowMinimum.length > 0
-                  ? `Cada item precisa de ${REQUIRED_QUOTATIONS} cotações registradas para ser concluído.`
-                  : undefined
-              }
               onClick={() => persist(true)}
             >
               Salvar e concluir
@@ -532,6 +504,9 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
                     <span>· {pkg.leadTimeDays} dias</span>
                   ) : null}
                 </div>
+                {pkg.obs?.trim() && (
+                  <p className={styles.packageObs}>{pkg.obs}</p>
+                )}
                 <div className={styles.packageFiles}>
                   {pkg.attachments.map((a) => (
                     <a
@@ -582,7 +557,7 @@ export const QuotationsTab: React.FC<IQuotationsTabProps> = ({ fid, data }) => {
 
       <GlassCard
         title="Comparativo por item"
-        subtitle={`Cada item precisa de ${REQUIRED_QUOTATIONS} cotações registradas para ser concluído.`}
+        subtitle={`Cada item precisa de ${REQUIRED_QUOTATIONS} cotações registradas para concluir a etapa.`}
         noBodyPadding
       >
         {canEdit && selectedIds.length > 0 && (

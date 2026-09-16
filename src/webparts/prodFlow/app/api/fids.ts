@@ -57,7 +57,6 @@ import {
 } from "../utils/classification";
 import { computeBudgetSla } from "../utils/kpis";
 import { formatDate } from "../utils/formatters";
-import { hasRequiredQuotations } from "../utils/quotationHelpers";
 import { queryKeys } from "./queryKeys";
 
 /** Keeps free-text excerpts short in the activity log. */
@@ -777,8 +776,6 @@ export function useUpsertQuotationPackage(
           for (const id of saved.coveredSubItemIds) {
             const item = draft.subItems.filter((s) => s.id === id)[0];
             if (!item) continue;
-            // Regra: o item só é custeado com o mínimo de cotações registradas.
-            if (!hasRequiredQuotations(draft, id)) continue;
             if (!item.selectedQuotationId) item.selectedQuotationId = saved.id;
             recordSubItemStatusChange(
               draft,

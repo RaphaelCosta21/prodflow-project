@@ -44,6 +44,25 @@ export interface IBudgetReportsTabProps {
   data: IFabricationRequest;
 }
 
+/**
+ * Cada gravação do orçamento de partes é um round-trip no SharePoint (merge + ETag + refetch),
+ * então a digitação fica local e só persiste no blur.
+ */
+function useDeferredText(
+  saved: string,
+  commit: (value: string) => void,
+): { value: string; onChange: (value: string) => void; onBlur: () => void } {
+  const [draft, setDraft] = React.useState(saved);
+  React.useEffect(() => setDraft(saved), [saved]);
+  return {
+    value: draft,
+    onChange: setDraft,
+    onBlur: () => {
+      if (draft !== saved) commit(draft);
+    },
+  };
+}
+
 function fabricationTotal(
   data: IFabricationRequest,
   subItem: ISubItem,
@@ -160,15 +179,6 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
 
   const reportCount = makes.length + (hasParts ? 1 : 0);
 
-  if (reportCount === 0) {
-    return (
-      <EmptyState
-        title="Nenhum relatório a gerar"
-        description="Defina a estratégia dos sub-itens: cada item Make gera um Relatório de Fabricação e os itens Buy geram um Relatório de Partes e Peças."
-      />
-    );
-  }
-
   const partsReport = reportByKey[PARTS_REPORT_KEY];
   const partsEdit = partsReport
     ? reportEditability(data, partsReport, actor)
@@ -180,6 +190,31 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
       partsBudget: { ...parts, ...patch },
       by: user.displayName,
     });
+
+  const projeto = useDeferredText(parts.projeto, (v) =>
+    saveParts({ projeto: v }),
+  );
+  const numeroOrcamento = useDeferredText(parts.numeroOrcamento, (v) =>
+    saveParts({ numeroOrcamento: v }),
+  );
+  const revisao = useDeferredText(parts.revisao ?? "", (v) =>
+    saveParts({ revisao: v }),
+  );
+  const validadeDias = useDeferredText(String(parts.validadeDias ?? 5), (v) =>
+    saveParts({ validadeDias: Number(v) || 0 }),
+  );
+  const observacoes = useDeferredText(parts.observacoes ?? "", (v) =>
+    saveParts({ observacoes: v }),
+  );
+
+  if (reportCount === 0) {
+    return (
+      <EmptyState
+        title="Nenhum relatório a gerar"
+        description="Defina a estratégia dos sub-itens: cada item Make gera um Relatório de Fabricação e os itens Buy geram um Relatório de Partes e Peças."
+      />
+    );
+  }
 
   const onApproveAll = (): void =>
     approveAll.mutate(
@@ -352,25 +387,28 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
             hint="Sai no cabeçalho do relatório; vem da Descrição da Visão Geral."
           >
             <Input
-              value={parts.projeto}
+              value={projeto.value}
               disabled={partsLocked}
-              onChange={(_, d) => saveParts({ projeto: d.value })}
+              onChange={(_, d) => projeto.onChange(d.value)}
+              onBlur={projeto.onBlur}
             />
           </Field>
 
           <div className={styles.partsHeader}>
             <Field label="Nº do orçamento">
               <Input
-                value={parts.numeroOrcamento}
+                value={numeroOrcamento.value}
                 disabled={partsLocked}
-                onChange={(_, d) => saveParts({ numeroOrcamento: d.value })}
+                onChange={(_, d) => numeroOrcamento.onChange(d.value)}
+                onBlur={numeroOrcamento.onBlur}
               />
             </Field>
             <Field label="Revisão">
               <Input
-                value={parts.revisao ?? ""}
+                value={revisao.value}
                 disabled={partsLocked}
-                onChange={(_, d) => saveParts({ revisao: d.value })}
+                onChange={(_, d) => revisao.onChange(d.value)}
+                onBlur={revisao.onBlur}
               />
             </Field>
             <Field label="Validade (dias corridos)">
@@ -378,10 +416,9 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
                 type="number"
                 min={0}
                 disabled={partsLocked}
-                value={String(parts.validadeDias ?? 5)}
-                onChange={(_, d) =>
-                  saveParts({ validadeDias: Number(d.value) || 0 })
-                }
+                value={validadeDias.value}
+                onChange={(_, d) => validadeDias.onChange(d.value)}
+                onBlur={validadeDias.onBlur}
               />
             </Field>
           </div>
@@ -431,9 +468,10 @@ export const BudgetReportsTab: React.FC<IBudgetReportsTabProps> = ({
           <Field label="Observações" className={styles.obs}>
             <Textarea
               resize="vertical"
-              value={parts.observacoes ?? ""}
+              value={observacoes.value}
               disabled={partsLocked}
-              onChange={(_, d) => saveParts({ observacoes: d.value })}
+              onChange={(_, d) => observacoes.onChange(d.value)}
+              onBlur={observacoes.onBlur}
             />
           </Field>
         </GlassCard>

@@ -1,15 +1,24 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@fluentui/react-components";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+} from "@fluentui/react-components";
 import {
   ArrowLeft20Regular,
   ArrowSync16Filled,
   Clock16Regular,
   Warning16Filled,
 } from "@fluentui/react-icons";
-import { IFabricationRequest, ISubItem } from "../models";
+import { IFabricationRequest, ISubItem, RequestStatus } from "../models";
 import { useFid } from "../api/fids";
 import { fidNavGroupsFor, FidTabKey } from "../config/fidDetailNav";
+import { REQUEST_STATUS_MAP } from "../config/statuses";
 import {
   isInternalMake,
   isQuotedRoute,
@@ -30,7 +39,6 @@ import DelineationTab from "../components/budgeting/DelineationTab";
 import QuotationsTab from "../components/budgeting/QuotationsTab";
 import BudgetReportsTab from "../components/budgeting/BudgetReportsTab";
 import PhaseStatusTab from "../components/budgeting/PhaseStatusTab";
-import ApprovalTab from "../components/budgeting/ApprovalTab";
 import { useAccessLevel } from "../hooks/useAccessLevel";
 import ProductionTab from "../components/production/ProductionTab";
 import QualityTab from "../components/quality/QualityTab";
@@ -40,9 +48,14 @@ import ActivityLogTab from "../components/common/ActivityLogTab";
 import NotesCommentsTab from "../components/common/NotesCommentsTab";
 import NoticeBar from "../components/common/NoticeBar";
 import FidDrawingCard from "../components/common/FidDrawingCard";
+import { useStatusPermissions } from "../hooks/useStatusPermissions";
 import { useUIStore } from "../stores/useUIStore";
 import { budgetDeadlineInfo } from "../utils/kpis";
-import { budgetStageNavState } from "../utils/budgetApproval";
+import {
+  blockingReasons,
+  budgetStageNavState,
+  canApproveReports,
+} from "../utils/budgetApproval";
 import { pendingDefinitionLabels } from "../utils/classification";
 import { formatCurrencyBRL, formatDate } from "../utils/formatters";
 import styles from "./FidDetailPage.module.scss";
@@ -240,6 +253,40 @@ export const FidDetailPage: React.FC = () => {
     };
   }, [data]);
 
+  const [statusTarget, setStatusTarget] = React.useState<
+    RequestStatus | undefined
+  >();
+  const clearStatusTarget = React.useCallback(
+    () => setStatusTarget(undefined),
+    [],
+  );
+  const [submitPrompt, setSubmitPrompt] = React.useState(false);
+  const promptShownRef = React.useRef(false);
+  const { teams, isAdmin } = useAccessLevel();
+  const { allowed } = useStatusPermissions(
+    data?.status ?? "InDelineation",
+    workflowOf(data?.tipoOrcamento),
+    data?.resumeStatus,
+  );
+  // Etapas concluídas + relatórios aprovados: só o time de Projetos conduz o envio à Petrobras.
+  const readyToSubmit =
+    !!data &&
+    allowed.indexOf("Submitted") >= 0 &&
+    canApproveReports({ teams, isAdmin }) &&
+    blockingReasons(data).length === 0;
+
+  React.useEffect(() => {
+    if (!readyToSubmit || promptShownRef.current) return;
+    promptShownRef.current = true;
+    setSubmitPrompt(true);
+  }, [readyToSubmit]);
+
+  const onSubmitNow = (): void => {
+    setSubmitPrompt(false);
+    setTab("phases");
+    setStatusTarget("Submitted");
+  };
+
   if (isLoading) {
     return (
       <div className={styles.page}>
@@ -341,12 +388,18 @@ export const FidDetailPage: React.FC = () => {
         <section className={styles.content}>
           {tab === "overview" && <OverviewTab fid={fid} data={data} />}
           {tab === "timeline" && <TimelineTab data={data} />}
-          {tab === "phases" && <PhaseStatusTab fid={fid} data={data} />}
+          {tab === "phases" && (
+            <PhaseStatusTab
+              fid={fid}
+              data={data}
+              pendingTarget={statusTarget}
+              onPendingTargetHandled={clearStatusTarget}
+            />
+          )}
           {tab === "subitems" && <SubItemStrategyTab fid={fid} data={data} />}
           {tab === "delineation" && <DelineationTab fid={fid} data={data} />}
           {tab === "quotations" && <QuotationsTab fid={fid} data={data} />}
           {tab === "reports" && <BudgetReportsTab fid={fid} data={data} />}
-          {tab === "approval" && <ApprovalTab fid={fid} data={data} />}
           {tab === "production" && <ProductionTab fid={fid} data={data} />}
           {tab === "quality" && <QualityTab fid={fid} data={data} />}
           {tab === "documents" && <DocumentsTab data={data} />}
@@ -354,6 +407,38 @@ export const FidDetailPage: React.FC = () => {
           {tab === "activity" && <ActivityLogTab data={data} />}
         </section>
       </div>
+
+      <Dialog
+        open={submitPrompt}
+        onOpenChange={(_, d) => setSubmitPrompt(d.open)}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Orçamento pronto para envio</DialogTitle>
+            <DialogContent>
+              <p className={styles.promptText}>
+                Todas as etapas de orçamentação foram concluídas e os relatórios
+                aprovados pelo time de Projetos.
+              </p>
+              <p className={styles.promptText}>
+                Deseja alterar o status para{" "}
+                <strong>{REQUEST_STATUS_MAP.Submitted.label}</strong> agora?
+              </p>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                onClick={() => setSubmitPrompt(false)}
+              >
+                Depois
+              </Button>
+              <Button appearance="primary" onClick={onSubmitNow}>
+                Alterar agora
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };

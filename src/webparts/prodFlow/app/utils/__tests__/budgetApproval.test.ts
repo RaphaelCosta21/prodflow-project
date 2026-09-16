@@ -140,7 +140,7 @@ describe("stageReadiness", () => {
     expect(stageReadiness(draft, "delineation").ok).toBe(true);
   });
 
-  it("cobra estratégia, início e cotação na etapa de Cotações", () => {
+  it("cobra estratégia, início, cotação e o mínimo de cotações na etapa de Cotações", () => {
     const draft = request({
       subItems: [
         subItem({ id: "x1", strategy: undefined }),
@@ -153,7 +153,9 @@ describe("stageReadiness", () => {
         }),
       ],
     });
-    expect(stageReadiness(draft, "quotations").pendencias).toHaveLength(3);
+    const { pendencias } = stageReadiness(draft, "quotations");
+    expect(pendencias).toHaveLength(4);
+    expect(pendencias[3]).toContain("menos de 3 cotações");
   });
 });
 

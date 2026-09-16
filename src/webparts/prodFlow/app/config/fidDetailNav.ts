@@ -6,7 +6,6 @@ import {
   Ruler20Regular,
   Cart20Regular,
   DocumentTable20Regular,
-  CheckmarkCircle20Regular,
   Wrench20Regular,
   Beaker20Regular,
   DocumentMultiple20Regular,
@@ -25,7 +24,6 @@ export type FidTabKey =
   | "delineation"
   | "quotations"
   | "reports"
-  | "approval"
   | "production"
   | "quality"
   | "documents"
@@ -85,12 +83,6 @@ export const FID_NAV_GROUPS: IFidNavGroup[] = [
         label: "Relatórios de Orçamento",
         icon: DocumentTable20Regular,
         ownerTeam: "planning",
-      },
-      {
-        key: "approval",
-        label: "Aprovação",
-        icon: CheckmarkCircle20Regular,
-        ownerTeam: "projects",
       },
     ],
   },

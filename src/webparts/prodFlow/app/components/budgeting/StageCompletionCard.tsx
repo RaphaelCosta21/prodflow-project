@@ -38,7 +38,7 @@ export interface IStageCompletionCardProps {
   stage: BudgetStageKey;
 }
 
-type StageDialog = "conclude" | "reopen" | "prompt";
+type StageDialog = "conclude" | "reopen";
 
 export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
   fid,
@@ -59,17 +59,6 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
   const mayEdit = canEditStage(stage, actor);
   const mayReopen = canReopenStage(data, stage, actor);
   const busy = conclude.isLoading || reopen.isLoading;
-
-  const promptable = mayEdit && !state.concluido;
-  const wasReady = React.useRef(readiness.ok);
-
-  // Dispara no instante em que a última pendência cai — nunca ao abrir uma aba já sem
-  // pendências, então um pedido de revisão só reabre o lembrete depois do retrabalho.
-  React.useEffect(() => {
-    const previous = wasReady.current;
-    wasReady.current = readiness.ok;
-    if (!previous && readiness.ok && promptable) setDialog("prompt");
-  }, [readiness.ok, promptable]);
 
   const run = (kind: "conclude" | "reopen"): void => {
     setDialog(undefined);
@@ -201,23 +190,19 @@ export const StageCompletionCard: React.FC<IStageCompletionCardProps> = ({
             <DialogTitle>
               {dialog === "reopen"
                 ? `Reabrir ${BUDGET_STAGE_LABEL[stage]}?`
-                : dialog === "prompt"
-                  ? `${BUDGET_STAGE_LABEL[stage]} está pronta para conclusão`
-                  : `Concluir ${BUDGET_STAGE_LABEL[stage]}?`}
+                : `Concluir ${BUDGET_STAGE_LABEL[stage]}?`}
             </DialogTitle>
             <DialogContent>
               {dialog === "reopen"
                 ? "A aba volta a aceitar edições e o check verde sai da navegação até a etapa ser concluída de novo."
-                : dialog === "prompt"
-                  ? "Não há mais pendências nesta etapa. Concluir agora envia os relatórios para a conferência do time de Projetos e deixa a aba somente leitura. Ela só volta a aceitar edições se Projetos pedir uma revisão."
-                  : "A aba ficará somente leitura e os relatórios seguem para a aprovação do time de Projetos. Só é possível reabrir enquanto nenhum relatório desta etapa for aprovado."}
+                : "A aba ficará somente leitura e os relatórios seguem para a aprovação do time de Projetos. Só é possível reabrir enquanto nenhum relatório desta etapa for aprovado."}
             </DialogContent>
             <DialogActions>
               <Button
                 appearance="secondary"
                 onClick={() => setDialog(undefined)}
               >
-                {dialog === "prompt" ? "Agora não" : "Cancelar"}
+                Cancelar
               </Button>
               <Button
                 appearance="primary"

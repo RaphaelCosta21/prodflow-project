@@ -74,17 +74,15 @@ export function delineationToBudget(
     const usinagem = CONTRACT_LABOR.filter(
       (l) => l.servico === "Usinagem" && l.complexidade === complexidade,
     )[0];
-    const caldeiraria = CONTRACT_LABOR.filter(
-      (l) => l.servico === "Caldeiraria" && l.complexidade === complexidade,
-    )[0];
 
-    if (usinagem) setQtd(tables.tabela2Labor, usinagem.key, d.horasUsinagem);
-    // Acabamento e montagem são executados pela caldeiraria no contrato.
-    if (caldeiraria) {
+    // Usinagem, acabamento e montagem são cobrados na linha de Usinagem; Caldeiraria fica zerada.
+    if (usinagem) {
       setQtd(
         tables.tabela2Labor,
-        caldeiraria.key,
-        (d.horasAcabamento || 0) + (d.horasMontagem || 0),
+        usinagem.key,
+        (d.horasUsinagem || 0) +
+          (d.horasAcabamento || 0) +
+          (d.horasMontagem || 0),
       );
     }
     for (const s of delineationServices(d)) {

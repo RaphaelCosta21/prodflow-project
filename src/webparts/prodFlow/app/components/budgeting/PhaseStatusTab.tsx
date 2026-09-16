@@ -39,6 +39,9 @@ import styles from "./PhaseStatusTab.module.scss";
 export interface IPhaseStatusTabProps {
   fid: string;
   data: IFabricationRequest;
+  /** Abre o diálogo de confirmação já apontando para este status (vindo de outra aba). */
+  pendingTarget?: RequestStatus;
+  onPendingTargetHandled?: () => void;
 }
 
 const TRANSVERSAL: RequestStatus[] = ["OnHold", "Cancelled"];
@@ -46,6 +49,8 @@ const TRANSVERSAL: RequestStatus[] = ["OnHold", "Cancelled"];
 export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
   fid,
   data,
+  pendingTarget,
+  onPendingTargetHandled,
 }) => {
   const user = useCurrentUser();
   const colors = useStatusColors();
@@ -61,6 +66,12 @@ export const PhaseStatusTab: React.FC<IPhaseStatusTabProps> = ({
 
   const [target, setTarget] = React.useState<RequestStatus | undefined>();
   const [note, setNote] = React.useState("");
+
+  React.useEffect(() => {
+    if (!pendingTarget) return;
+    setTarget(pendingTarget);
+    if (onPendingTargetHandled) onPendingTargetHandled();
+  }, [pendingTarget, onPendingTargetHandled]);
 
   const frozenTime = timelineFreezeTime(data);
   const openStatus = (data.statusHistory ?? []).filter((e) => !e.end).pop();

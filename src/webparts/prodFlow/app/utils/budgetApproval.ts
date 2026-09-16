@@ -13,6 +13,7 @@ import {
   isQuotedRoute,
   isSubItemCosted,
 } from "../config/workflows";
+import { REQUIRED_QUOTATIONS, hasRequiredQuotations } from "./quotationHelpers";
 import { buyLeaves, makeItems } from "./partsBudgetBuilder";
 
 export const PARTS_REPORT_KEY = "parts";
@@ -212,6 +213,20 @@ export function stageReadiness(
     const pending = countRouted(request, isQuotedRoute);
     if (pending > 0) {
       pendencias.push(`${pending} item(ns) sem cotação concluída.`);
+    }
+    // O mínimo de cotações por item só trava aqui — registrar uma cotação por vez é livre.
+    const semMinimo = request.subItems.filter(
+      (s) =>
+        !!s.strategy &&
+        s.strategy !== "NA" &&
+        !!s.startedAt &&
+        isQuotedRoute(s) &&
+        !hasRequiredQuotations(request, s.id),
+    ).length;
+    if (semMinimo > 0) {
+      pendencias.push(
+        `${semMinimo} item(ns) com menos de ${REQUIRED_QUOTATIONS} cotações registradas.`,
+      );
     }
   }
   return { ok: pendencias.length === 0, pendencias };
